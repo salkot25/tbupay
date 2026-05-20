@@ -1,0 +1,324 @@
+.home-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.role-badge {
+  text-transform: capitalize;
+  background-color: #e0e7ff;
+  color: var(--color-primary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.notification-bell {
+  background-color: #f3f4f6;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-bell:hover {
+  background-color: #e5e7eb;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  background-color: #ef4444; /* red-500 */
+  border: 2px solid #f3f4f6;
+  border-radius: 50%;
+}
+
+.kas-card {
+  background-color: var(--color-primary);
+  color: white;
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.kas-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kas-header .text-secondary {
+  color: #e2e8f0;
+}
+
+.kas-amount {
+  color: white;
+  margin: var(--spacing-1) 0;
+}
+
+.kas-card .text-success {
+  color: #6ee7b7;
+}
+
+.status-widget {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+}
+
+.status-badge.lunas {
+  background-color: #d1fae5;
+  color: var(--color-success);
+}
+
+.status-badge.pending {
+  background-color: #fef3c7;
+  color: var(--color-warning);
+}
+
+.status-badge.belum_bayar {
+  background-color: #fee2e2;
+  color: var(--color-danger);
+}
+
+.news-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.news-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-list-panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.18s;
+}
+
+.history-item:hover {
+  background-color: #f8fafc;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.history-item-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.history-item-icon.income {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.history-item-icon.expense {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.history-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.35;
+}
+
+.history-item-meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #9ca3af;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.history-status-badge.verified {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.history-status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.history-status-badge.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.history-item-amount {
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.history-empty-state {
+  padding: 18px 14px;
+  text-align: center;
+}
+
+/* ===== Admin Quick Actions ===== */
+.admin-quickactions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-qa-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.admin-qa-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-qa-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: white;
+  border: 1px solid #f3f4f6;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition:
+    background 0.15s,
+    transform 0.1s;
+}
+
+.admin-qa-card:active {
+  transform: scale(0.98);
+  background: #f9fafb;
+}
+
+.admin-qa-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-qa-card.verif .admin-qa-icon {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.admin-qa-card.users .admin-qa-icon {
+  background-color: #f5f3ff;
+  color: #7c3aed;
+}
+
+.admin-qa-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-qa-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.admin-qa-sub {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.admin-qa-badge {
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.admin-qa-arrow {
+  color: #d1d5db;
+  flex-shrink: 0;
+}
