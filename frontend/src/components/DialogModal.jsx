@@ -1,13 +1,33 @@
 import { useEffect } from "react";
-import { CheckCircle2, AlertTriangle, Info, Trash2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Info, Trash2, X } from "lucide-react";
 import useStore from "../store/useStore";
-import "./DialogModal.css";
 
 const ICON_MAP = {
-  info: <Info size={26} />,
-  success: <CheckCircle2 size={26} />,
-  warning: <AlertTriangle size={26} />,
-  danger: <Trash2 size={26} />,
+  info: <Info size={22} />,
+  success: <CheckCircle2 size={22} />,
+  warning: <AlertTriangle size={22} />,
+  danger: <Trash2 size={22} />,
+};
+
+const VARIANT_ICON_STYLES = {
+  info: "bg-blue-50 text-blue-500",
+  success: "bg-green-50 text-green-500",
+  warning: "bg-amber-50 text-amber-500",
+  danger: "bg-red-50 text-red-500",
+};
+
+const VARIANT_CONFIRM_BUTTON_STYLES = {
+  info: "bg-blue-600 hover:bg-blue-700",
+  success: "bg-green-600 hover:bg-green-700",
+  warning: "bg-amber-500 hover:bg-amber-600",
+  danger: "bg-red-600 hover:bg-red-700",
+};
+
+const VARIANT_ACCENT = {
+  info: "border-blue-400",
+  success: "border-green-400",
+  warning: "border-amber-400",
+  danger: "border-red-400",
 };
 
 export default function DialogModal() {
@@ -26,9 +46,7 @@ export default function DialogModal() {
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e) => {
-      if (e.key === "Escape") {
-        handleCancel();
-      }
+      if (e.key === "Escape") handleCancel();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -47,34 +65,70 @@ export default function DialogModal() {
   };
 
   const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget && type === "alert") {
-      handleConfirm();
+    if (e.target === e.currentTarget) {
+      if (type === "alert") handleConfirm();
+      else handleCancel();
     }
   };
 
   return (
     <div
-      className={`dialog-overlay${isOpen ? " open" : ""}`}
+      className={`fixed inset-0 z-[100] flex justify-center items-end transition-colors duration-300 ${
+        isOpen
+          ? "bg-black/50 pointer-events-auto"
+          : "bg-transparent pointer-events-none"
+      }`}
       onClick={handleOverlayClick}
     >
-      <div className="dialog-box" role="dialog" aria-modal="true">
-        <div className="dialog-icon-wrap">
-          <div className={`dialog-icon ${variant}`}>{ICON_MAP[variant]}</div>
+      <div
+        className={`w-full max-w-[480px] bg-white rounded-t-[28px] shadow-[0_-4px_24px_rgba(0,0,0,0.15)] overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          isOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Drag handle */}
+        <div className="w-[44px] h-[5px] rounded-full bg-gray-200 mx-auto mt-3 mb-1" />
+
+        {/* Header */}
+        <div className={`flex items-start justify-between p-5 pb-3 border-b-2 ${VARIANT_ACCENT[variant]}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${VARIANT_ICON_STYLES[variant]}`}>
+              {ICON_MAP[variant]}
+            </div>
+            {title && (
+              <p className="text-[16px] font-bold text-gray-900 m-0 leading-snug">
+                {title}
+              </p>
+            )}
+          </div>
+          <button
+            className="p-1.5 bg-gray-100 rounded-full text-gray-500 border-none cursor-pointer flex items-center justify-center transition-colors hover:bg-gray-200 shrink-0 ml-2"
+            onClick={type === "alert" ? handleConfirm : handleCancel}
+          >
+            <X size={16} />
+          </button>
         </div>
 
-        <div className="dialog-body">
-          {title && <p className="dialog-title">{title}</p>}
-          <p className="dialog-message">{message}</p>
+        {/* Body */}
+        <div className="px-5 py-4">
+          <p className="text-[14px] text-gray-600 m-0 leading-relaxed whitespace-pre-line">
+            {message}
+          </p>
         </div>
 
-        <div className="dialog-actions">
+        {/* Actions */}
+        <div className="flex gap-3 px-5 pb-8 pt-1">
           {type === "confirm" && (
-            <button className="btn-cancel" onClick={handleCancel}>
+            <button
+              className="flex-1 py-3 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-[14px] font-semibold cursor-pointer transition-colors hover:bg-gray-50"
+              onClick={handleCancel}
+            >
               {cancelLabel}
             </button>
           )}
           <button
-            className={`btn-confirm ${variant}${type === "alert" ? " full" : ""}`}
+            className={`flex-1 py-3 px-4 rounded-xl border-none text-[14px] font-bold cursor-pointer text-white transition-all active:scale-95 ${VARIANT_CONFIRM_BUTTON_STYLES[variant]}`}
             onClick={handleConfirm}
           >
             {confirmLabel}

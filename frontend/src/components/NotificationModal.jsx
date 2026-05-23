@@ -13,7 +13,6 @@ import { getTransactions } from "../application/use-cases/transactions/transacti
 import { getNews } from "../application/use-cases/news/newsUseCases";
 import CacheFallbackBadge from "./CacheFallbackBadge";
 import useStore from "../store/useStore";
-import "./NotificationModal.css";
 
 /**
  * Builds a notification list dynamically from:
@@ -195,7 +194,7 @@ export default function NotificationModal({ isOpen, onClose, onPayNow }) {
   }, [isOpen, user]);
 
   const handleOverlayClick = (e) => {
-    if (e.target.classList.contains("notif-overlay")) onClose();
+    if (e.target === e.currentTarget) onClose();
   };
 
   const markRead = (id) => setReadIds((prev) => new Set([...prev, id]));
@@ -212,42 +211,72 @@ export default function NotificationModal({ isOpen, onClose, onPayNow }) {
     }
   };
 
+  const getUnreadClasses = (type) => {
+    switch (type) {
+      case "danger": return "border-red-200 border-l-4 border-l-red-500";
+      case "warning": return "border-amber-200 border-l-4 border-l-amber-500";
+      case "info": return "border-blue-200 border-l-4 border-l-blue-500";
+      case "success": return "border-green-200 border-l-4 border-l-green-500";
+      default: return "";
+    }
+  };
+
+  const getActionBtnClasses = (type) => {
+    switch (type) {
+      case "danger": return "bg-red-100 text-red-600 hover:bg-red-200";
+      case "info": return "bg-blue-100 text-blue-600 hover:bg-blue-200";
+      default: return "bg-gray-100 text-gray-700";
+    }
+  };
+
   return (
     <div
-      className={`notif-overlay ${isOpen ? "open" : ""}`}
+      className={`fixed inset-0 z-60 flex justify-center items-end transition-colors duration-300 ${
+        isOpen ? "bg-black/50 pointer-events-auto" : "bg-transparent pointer-events-none"
+      }`}
       onClick={handleOverlayClick}
     >
-      <div className="notif-sheet">
+      <div 
+        className={`w-full max-w-[480px] bg-white rounded-t-3xl h-[75vh] flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          isOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
         {/* Header */}
-        <div className="notif-header">
-          <div className="notif-header-left">
-            <h3>Notifikasi</h3>
+        <div className="flex justify-between items-center p-5 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-gray-800 m-0">Notifikasi</h3>
             {unreadCount > 0 && (
-              <span className="notif-count-badge">{unreadCount} Baru</span>
+              <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {unreadCount} Baru
+              </span>
             )}
           </div>
-          <button className="notif-close-btn" onClick={onClose}>
+          <button 
+            className="p-2 bg-gray-100 rounded-full text-gray-600 border-none cursor-pointer flex items-center justify-center transition-colors hover:bg-gray-200" 
+            onClick={onClose}
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="notif-body">
+        <div className="p-4 overflow-y-auto flex-1 bg-gray-50 flex flex-col gap-3">
           <CacheFallbackBadge source={dataSource} />
+          
           {loading && (
-            <div className="notif-empty">
+            <div className="flex flex-col items-center justify-center flex-1 gap-2 text-gray-400 text-[13px] p-10 text-center">
               <Bell size={32} />
               <span>Memuat notifikasi...</span>
             </div>
           )}
 
           {!loading && notifications.length === 0 && (
-            <div className="notif-empty">
+            <div className="flex flex-col items-center justify-center flex-1 gap-2 text-gray-400 text-[13px] p-10 text-center">
               <BellOff size={40} />
-              <p style={{ fontWeight: 600, color: "#374151" }}>
+              <p className="font-semibold text-gray-700 m-0">
                 Tidak ada notifikasi
               </p>
-              <p>Semua transaksi dan tagihan Anda dalam kondisi baik.</p>
+              <p className="m-0">Semua transaksi dan tagihan Anda dalam kondisi baik.</p>
             </div>
           )}
 
@@ -257,20 +286,22 @@ export default function NotificationModal({ isOpen, onClose, onPayNow }) {
               return (
                 <div
                   key={notif.id}
-                  className={`notif-item ${isRead ? "read" : `unread-${notif.type}`}`}
+                  className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm transition-opacity duration-200 ${
+                    isRead ? "opacity-55" : getUnreadClasses(notif.type)
+                  }`}
                   onClick={() => markRead(notif.id)}
                 >
-                  <div className="notif-item-header">
-                    <div className="notif-item-title-row">
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-center gap-1.5">
                       <TypeIcon icon={notif.icon} type={notif.type} />
-                      <p className="notif-item-title">{notif.title}</p>
+                      <p className="text-sm font-bold text-gray-800 m-0">{notif.title}</p>
                     </div>
-                    <span className="notif-item-time">{notif.time}</span>
+                    <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">{notif.time}</span>
                   </div>
-                  <p className="notif-item-body">{notif.body}</p>
+                  <p className="text-xs text-gray-600 leading-relaxed mt-1 mb-0">{notif.body}</p>
                   {notif.action && (
                     <button
-                      className={`notif-action-btn ${notif.action.type}`}
+                      className={`inline-flex items-center gap-1 mt-2.5 text-xs font-bold py-1.5 px-3.5 rounded-lg border-none cursor-pointer transition-colors ${getActionBtnClasses(notif.action.type)}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleAction(notif);

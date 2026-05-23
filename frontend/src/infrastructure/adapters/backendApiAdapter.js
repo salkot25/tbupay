@@ -48,8 +48,10 @@ const request = async ({ method, action, payload, params, options = {} }) => {
         : BACKEND_BASE_URL;
     const response = await fetch(url, {
       method,
-      headers:
-        method === "POST" ? { "Content-Type": "application/json" } : undefined,
+      // NOTE: Sengaja tidak mengirim header 'Content-Type: application/json'
+      // karena Google Apps Script tidak mendukung CORS preflight (OPTIONS).
+      // Tanpa header ini, browser tidak mengirim preflight dan request langsung berhasil.
+      // GAS tetap bisa memparse body JSON melalui e.postData.contents.
       body:
         method === "POST"
           ? JSON.stringify({ action, ...(payload || {}) })

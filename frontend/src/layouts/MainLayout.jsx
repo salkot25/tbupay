@@ -8,7 +8,7 @@ import {
   prefetchHomeLikelyRoutes,
   prefetchRoute,
 } from "../routes/routePrefetch";
-import "./MainLayout.css";
+
 
 export default function MainLayout() {
   const navigate = useNavigate();
@@ -92,29 +92,29 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      <nav className="bottom-nav">
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-surface border-t border-border flex justify-around pt-2 pb-4 z-50">
         {leftNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           return (
             <button
               key={item.id}
-              className={`nav-item ${isActive ? "active" : ""}`}
+              className={`flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer py-2 px-3 transition-colors flex-1 ${isActive ? "text-primary" : "text-text-secondary hover:text-primary"}`}
               onMouseEnter={() => handleNavIntent(item.id)}
               onTouchStart={() => handleNavIntent(item.id)}
               onClick={() => navigate(item.path)}
             >
               <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="caption">{item.label}</span>
+              <span className="text-[11px] font-medium leading-[1.4]">{item.label}</span>
             </button>
           );
         })}
 
         {/* FAB in Center */}
         {user?.role !== "petugas" && (
-          <div className="flex justify-center w-full">
+          <div className="flex justify-center items-start flex-1 pt-0">
             <button
-              className="nav-center-btn"
+              className="relative -top-5 bg-primary border-4 border-surface shadow-[0_4px_10px_rgba(0,0,0,0.1)] w-14 h-14 rounded-full flex items-center justify-center text-white cursor-pointer transition-colors shrink-0 active:bg-[#1e40af]"
               onClick={() => setIsPaymentModalOpen(true)}
             >
               <Plus size={32} />
@@ -128,13 +128,13 @@ export default function MainLayout() {
           return (
             <button
               key={item.id}
-              className={`nav-item ${isActive ? "active" : ""}`}
+              className={`flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer py-2 px-3 transition-colors flex-1 ${isActive ? "text-primary" : "text-text-secondary hover:text-primary"}`}
               onMouseEnter={() => handleNavIntent(item.id)}
               onTouchStart={() => handleNavIntent(item.id)}
               onClick={() => navigate(item.path)}
             >
               <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="caption">{item.label}</span>
+              <span className="text-[11px] font-medium leading-[1.4]">{item.label}</span>
             </button>
           );
         })}

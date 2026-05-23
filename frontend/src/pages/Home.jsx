@@ -14,7 +14,6 @@ import { getTransactions } from "../application/use-cases/transactions/transacti
 import NotificationModal from "../components/NotificationModal";
 import CacheFallbackBadge from "../components/CacheFallbackBadge";
 import usePullToRefresh from "../hooks/usePullToRefresh";
-import "./Home.css";
 
 export default function Home() {
   const user = useStore((state) => state.user);
@@ -82,7 +81,6 @@ export default function Home() {
         setTotalKas(total);
 
         // Determine if there are unread notifications
-        // Unread = pending trx milik user, atau belum bayar bulan ini
         const myPending = transRes.data.filter(
           (t) => t.id_user === user?.id_user && t.status === "pending",
         );
@@ -94,7 +92,6 @@ export default function Home() {
             d.getFullYear() === thisYear
           );
         });
-        // Show badge if pending trx exists OR no payment this month (warga only)
         const showBadge =
           myPending.length > 0 || (user?.role === "warga" && !hasPayment);
         setHasUnread(showBadge);
@@ -124,68 +121,72 @@ export default function Home() {
     }).format(number);
   };
 
-  // Trigger FAB: called from notification "Bayar Sekarang" action
-  // We need to reach MainLayout's FAB — use a custom event
   const handlePayNow = () => {
     window.dispatchEvent(new CustomEvent("open-payment-modal"));
   };
 
   return (
-    <div className="home-container" {...pull.bind}>
+    <div className="flex flex-col gap-6" {...pull.bind}>
       {pull.showPullHint && (
-        <div className={`pull-refresh-hint ${pull.isReady ? "ready" : ""}`}>
+        <div className={`sticky top-2 z-[31] mx-auto mb-2.5 w-fit px-3 py-[7px] rounded-full border text-xs font-semibold ${pull.isReady ? "border-green-300 bg-green-50 text-green-800" : "border-indigo-200 bg-indigo-50 text-indigo-800"}`}>
           {pull.isReady ? "Lepas untuk muat ulang" : "Tarik untuk muat ulang"}
         </div>
       )}
       <CacheFallbackBadge source={dataSource} />
+      
       {/* Header */}
-      <header className="home-header">
+      <header className="flex justify-between items-center">
         <div>
           <h2>Halo, {user?.nama || "Warga"}</h2>
-          <p className="text-secondary">
+          <p className="text-gray-500">
             {user?.blok_rumah || "-"} •{" "}
-            <span className="role-badge">{user?.role}</span>
+            <span className="capitalize bg-indigo-100 text-[#0f4c81] px-2 py-0.5 rounded-full text-[11px] font-medium">
+              {user?.role}
+            </span>
           </p>
         </div>
         <div
-          className="notification-bell"
+          className="bg-gray-100 p-2 rounded-full cursor-pointer relative transition-colors flex items-center justify-center hover:bg-gray-200"
           onClick={() => {
             setIsNotifOpen(true);
             setHasUnread(false);
           }}
         >
           <Bell size={20} />
-          {hasUnread && <span className="notification-badge"></span>}
+          {hasUnread && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-gray-100 rounded-full"></span>}
         </div>
       </header>
 
       {/* Financial Card */}
-      <section className="kas-card">
-        <div className="kas-header">
-          <Wallet size={20} className="text-secondary" />
-          <span className="caption text-secondary">Total Kas Perumahan</span>
+      <section className="bg-[#0f4c81] text-white p-6 rounded-xl flex flex-col gap-2">
+        <div className="flex items-center gap-2 text-slate-200">
+          <Wallet size={20} />
+          <span className="text-xs font-medium">Total Kas Perumahan</span>
         </div>
-        <h1 className="kas-amount tabular-nums">{formatRupiah(totalKas)}</h1>
-        <p className="caption text-success">Saldo kas aktif</p>
+        <h1 className="text-white my-2 tabular-nums">{formatRupiah(totalKas)}</h1>
+        <p className="text-xs font-medium text-emerald-300">Saldo kas aktif</p>
       </section>
 
       {/* Status Widget */}
-      <section className="status-widget">
-        <div className="status-content">
-          <h3>Status Iuran Bulan Ini</h3>
-          <p className="caption text-secondary">
+      <section className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-center">
+        <div>
+          <h3 className="text-[15px] font-bold m-0">Status Iuran Bulan Ini</h3>
+          <p className="text-xs font-medium text-gray-500 mt-1">
             {new Date().toLocaleDateString("id-ID", {
               month: "long",
               year: "numeric",
             })}
           </p>
         </div>
-        <div className={`status-badge ${statusIuran}`}>
+        <div className={`flex items-center gap-1.5 px-3 py-2 rounded-full ${
+          statusIuran === "lunas" ? "bg-emerald-100 text-emerald-500" :
+          statusIuran === "pending" ? "bg-amber-100 text-amber-500" :
+          "bg-red-100 text-red-500"
+        }`}>
           {statusIuran === "lunas" && <CheckCircle size={18} />}
-          {statusIuran === "pending" && <AlertCircle size={18} />}
-          {statusIuran === "belum_bayar" && <AlertCircle size={18} />}
+          {(statusIuran === "pending" || statusIuran === "belum_bayar") && <AlertCircle size={18} />}
 
-          <span className="caption">
+          <span className="text-xs font-medium">
             {statusIuran === "lunas"
               ? "Lunas"
               : statusIuran === "pending"
@@ -195,110 +196,104 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== ADMIN QUICK ACTIONS (only for admin role) ===== */}
+      {/* ===== ADMIN QUICK ACTIONS ===== */}
       {user?.role === "admin" && (
-        <section className="admin-quickactions">
-          <p className="admin-qa-title">Aksi Cepat Admin</p>
-          <div className="admin-qa-grid">
+        <section className="flex flex-col gap-2.5">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest m-0">Aksi Cepat Admin</p>
+          <div className="flex flex-col gap-2.5">
             {/* Verifikasi Pembayaran */}
             <button
-              className="admin-qa-card verif"
+              className="flex items-center gap-3.5 bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer text-left w-full shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all active:scale-95 active:bg-gray-50"
               onClick={() => navigate("/admin/verifikasi")}
             >
-              <div className="admin-qa-icon">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
                 <ClipboardCheck size={22} />
               </div>
-              <div className="admin-qa-info">
-                <span className="admin-qa-label">Verifikasi</span>
-                <span className="admin-qa-sub">Tinjau bukti bayar warga</span>
+              <div className="flex-1 flex flex-col gap-0.5">
+                <span className="text-sm font-bold text-gray-800">Verifikasi</span>
+                <span className="text-[11px] text-gray-400">Tinjau bukti bayar warga</span>
               </div>
               {pendingCount > 0 && (
-                <span className="admin-qa-badge">{pendingCount}</span>
+                <span className="bg-red-100 text-red-600 text-[11px] font-extrabold px-2 py-0.5 rounded-full min-w-[24px] text-center">
+                  {pendingCount}
+                </span>
               )}
-              <ChevronRight size={16} className="admin-qa-arrow" />
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
             </button>
 
             {/* Kelola Pengguna */}
             <button
-              className="admin-qa-card users"
+              className="flex items-center gap-3.5 bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer text-left w-full shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all active:scale-95 active:bg-gray-50"
               onClick={() => navigate("/admin/users")}
             >
-              <div className="admin-qa-icon">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-purple-50 text-purple-600">
                 <Users size={22} />
               </div>
-              <div className="admin-qa-info">
-                <span className="admin-qa-label">Pengguna</span>
-                <span className="admin-qa-sub">Tambah & kelola akun warga</span>
+              <div className="flex-1 flex flex-col gap-0.5">
+                <span className="text-sm font-bold text-gray-800">Pengguna</span>
+                <span className="text-[11px] text-gray-400">Tambah & kelola akun warga</span>
               </div>
-              <ChevronRight size={16} className="admin-qa-arrow" />
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
             </button>
           </div>
         </section>
       )}
 
       {/* Quick Info Slider */}
-      <section className="news-section">
-        <div className="news-header-title">
-          <Bell size={18} className="text-primary" />
-          <h3>5 Riwayat Transaksi Terakhir</h3>
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Bell size={18} className="text-[#0f4c81]" />
+          <h3 className="text-[15px] font-bold m-0">5 Riwayat Transaksi Terakhir</h3>
         </div>
-        <div className="history-list-panel">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           {myLatestTransactions.length > 0 ? (
-            myLatestTransactions.map((trx) => {
-              const isPemasukan = trx.jenis === "pemasukan";
-              const statusLabel =
-                trx.status === "verified"
-                  ? "Terverifikasi"
-                  : trx.status === "pending"
-                    ? "Menunggu Verifikasi"
-                    : "Ditolak";
-              const statusClass =
-                trx.status === "verified"
-                  ? "verified"
-                  : trx.status === "pending"
-                    ? "pending"
-                    : "rejected";
-
-              return (
-                <div key={trx.id_transaksi} className="history-item">
-                  <div className="history-item-left">
-                    <div
-                      className={`history-item-icon ${isPemasukan ? "income" : "expense"}`}
-                    >
-                      {isPemasukan ? (
-                        <CheckCircle size={14} />
-                      ) : (
-                        <AlertCircle size={14} />
-                      )}
+            <div className="flex flex-col">
+              {myLatestTransactions.map((trx, index) => {
+                const isPemasukan = trx.jenis === "pemasukan";
+                const statusLabel =
+                  trx.status === "verified"
+                    ? "Terverifikasi"
+                    : trx.status === "pending"
+                      ? "Menunggu Verifikasi"
+                      : "Ditolak";
+                
+                return (
+                  <div key={trx.id_transaksi} className={`flex items-center justify-between gap-2.5 p-3.5 ${index !== myLatestTransactions.length - 1 ? 'border-b border-gray-100' : ''} transition-colors hover:bg-slate-50`}>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-7.5 h-7.5 min-w-[30px] rounded-full flex items-center justify-center shrink-0 ${isPemasukan ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
+                        {isPemasukan ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-bold text-gray-800 leading-snug m-0 truncate">
+                          {trx.keterangan || "-"}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-gray-400 flex items-center gap-1.5 m-0">
+                          {new Date(trx.timestamp).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-tight ${
+                            trx.status === "verified" ? "bg-green-100 text-green-800" :
+                            trx.status === "pending" ? "bg-amber-100 text-amber-800" :
+                            "bg-red-100 text-red-800"
+                          }`}>
+                            {statusLabel}
+                          </span>
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="history-item-title">
-                        {trx.keterangan || "-"}
-                      </p>
-                      <p className="history-item-meta">
-                        {new Date(trx.timestamp).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                        <span className={`history-status-badge ${statusClass}`}>
-                          {statusLabel}
-                        </span>
-                      </p>
-                    </div>
+                    <p className={`text-xs font-bold shrink-0 tabular-nums m-0 ${isPemasukan ? "text-green-500" : "text-red-500"}`}>
+                      {isPemasukan ? "+" : "-"}{" "}
+                      {formatRupiah(Number(trx.nominal) || 0)}
+                    </p>
                   </div>
-                  <p
-                    className={`history-item-amount tabular-nums ${isPemasukan ? "text-success" : "text-danger"}`}
-                  >
-                    {isPemasukan ? "+" : "-"}{" "}
-                    {formatRupiah(Number(trx.nominal) || 0)}
-                  </p>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           ) : (
-            <div className="history-empty-state">
-              <p className="body-text text-secondary">
+            <div className="py-4.5 px-3.5 text-center">
+              <p className="text-sm font-normal text-gray-500 m-0">
                 {loading
                   ? "Memuat riwayat transaksi..."
                   : "Belum ada riwayat transaksi."}

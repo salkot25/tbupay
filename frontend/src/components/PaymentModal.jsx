@@ -9,7 +9,6 @@ import {
   getTransactionCategories,
   reorderTransactionCategories,
 } from "../application/use-cases/transactions/transactionUseCases";
-import "./PaymentModal.css";
 
 export default function PaymentModal({ isOpen, onClose }) {
   const user = useStore((state) => state.user);
@@ -226,7 +225,7 @@ export default function PaymentModal({ isOpen, onClose }) {
 
   // Close when clicking outside
   const handleOverlayClick = (e) => {
-    if (e.target.classList.contains("modal-overlay")) {
+    if (e.target === e.currentTarget) {
       onClose();
     }
   };
@@ -295,7 +294,6 @@ export default function PaymentModal({ isOpen, onClose }) {
       const numericNominal = parseInt(nominal.replace(/\./g, ""), 10);
 
       // Convert "2026-05" back to "Mei 2026" or just pass "2026-05"
-      // Let's pass the raw YYYY-MM so the backend can parse it, or format it
       const dateObj = new Date(bulan + "-01");
       const bulanFormatted = dateObj.toLocaleDateString("id-ID", {
         month: "long",
@@ -344,46 +342,58 @@ export default function PaymentModal({ isOpen, onClose }) {
 
   return (
     <div
-      className={`modal-overlay ${isOpen ? "open" : ""}`}
+      className={`fixed inset-0 z-50 flex justify-center items-end bg-black/50 transition-opacity duration-300 ${
+        isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      }`}
       onClick={handleOverlayClick}
     >
-      <div className="modal-content enterprise-compact">
-        <div className="modal-header">
-          <h3>{isAdmin ? "Input Kas" : "Lapor Iuran"}</h3>
-          <button className="close-btn" onClick={onClose}>
+      <div 
+        className={`w-full max-w-[480px] bg-white rounded-t-3xl h-[85vh] flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          isOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <div className="flex justify-between items-center py-4 px-4.5 border-b border-gray-100 shrink-0">
+          <h3 className="font-bold text-base tracking-[0.1px] text-gray-800 m-0">
+            {isAdmin ? "Input Kas" : "Lapor Iuran"}
+          </h3>
+          <button 
+            className="p-1.5 bg-gray-100 rounded-full text-gray-600 border-none cursor-pointer flex items-center justify-center transition-colors hover:bg-gray-200" 
+            onClick={onClose}
+          >
             <X size={20} />
           </button>
         </div>
 
-        <div className="modal-body">
-          <p
-            className="caption text-secondary"
-            style={{ marginBottom: "20px" }}
-          >
+        <div className="relative p-4 overflow-y-auto flex-1">
+          <p className="text-[12px] font-medium leading-[1.4] text-gray-500 mb-5">
             {isAdmin
               ? "Catat pemasukan atau pengeluaran kas perumahan secara langsung."
               : "Kirim bukti transfer untuk verifikasi pembayaran Anda."}
           </p>
 
-          <form className="payment-form" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
             {isAdmin && (
-              <div className="form-group">
-                <label>Tipe Transaksi</label>
-                <div
-                  className="transaction-toggle"
-                  role="tablist"
-                  aria-label="Tipe transaksi"
-                >
+              <div className="flex flex-col gap-[3px]">
+                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.25px]">Tipe Transaksi</label>
+                <div className="grid grid-cols-2 gap-1.5" role="tablist" aria-label="Tipe transaksi">
                   <button
                     type="button"
-                    className={`tx-btn ${transactionType === "pemasukan" ? "active pemasukan" : ""}`}
+                    className={`min-h-[34px] text-[11px] font-bold rounded-[9px] border cursor-pointer transition-all ${
+                      transactionType === "pemasukan" 
+                        ? "border-green-300 bg-green-50 text-green-800" 
+                        : "border-[#dbe3ee] bg-slate-50 text-slate-600"
+                    }`}
                     onClick={() => setTransactionType("pemasukan")}
                   >
                     Pemasukan
                   </button>
                   <button
                     type="button"
-                    className={`tx-btn ${transactionType === "pengeluaran" ? "active pengeluaran" : ""}`}
+                    className={`min-h-[34px] text-[11px] font-bold rounded-[9px] border cursor-pointer transition-all ${
+                      transactionType === "pengeluaran" 
+                        ? "border-red-300 bg-red-50 text-red-800" 
+                        : "border-[#dbe3ee] bg-slate-50 text-slate-600"
+                    }`}
                     onClick={() => setTransactionType("pengeluaran")}
                   >
                     Pengeluaran
@@ -392,29 +402,25 @@ export default function PaymentModal({ isOpen, onClose }) {
               </div>
             )}
 
-            <div className="form-group">
-              <label>
-                {transactionType === "pengeluaran"
-                  ? "Kategori Pengeluaran"
-                  : "Jenis Iuran"}
+            <div className="flex flex-col gap-[3px]">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.25px]">
+                {transactionType === "pengeluaran" ? "Kategori Pengeluaran" : "Jenis Iuran"}
               </label>
-              <div className="category-select-row">
+              <div className="grid grid-cols-[1fr_auto] gap-2">
                 <select
-                  className="input-field"
+                  className="w-full min-h-[40px] px-3 py-[9px] rounded-[10px] text-[13px] bg-[#fcfdff] border border-gray-200 outline-none font-sans text-gray-900 focus:border-blue-500"
                   value={kategori}
                   onChange={(e) => setKategori(e.target.value)}
                 >
                   {getActiveOptions().map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
+                    <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>
 
                 {isAdmin && (
                   <button
                     type="button"
-                    className="btn-edit-category"
+                    className="border border-[#dbe3ee] rounded-[9px] bg-white text-slate-700 min-w-[58px] min-h-[34px] px-3 text-[11px] font-bold cursor-pointer hover:bg-slate-50"
                     onClick={() => setIsCategoryEditorOpen(true)}
                   >
                     Edit
@@ -423,28 +429,29 @@ export default function PaymentModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Bulan Penagihan</label>
-              <div className="month-input-shell">
-                <CalendarDays size={16} />
+            <div className="flex flex-col gap-[3px]">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.25px]">Bulan Penagihan</label>
+              <div className="relative flex items-center border border-[#dbe3ee] rounded-[10px] bg-gradient-to-b from-white to-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus-within:border-blue-300 focus-within:ring-[3px] focus-within:ring-blue-500/10">
+                <CalendarDays size={16} className="absolute left-[11px] text-slate-500 pointer-events-none" />
                 <input
                   type="month"
-                  className="input-field month-input"
+                  className="w-full min-h-[40px] pl-[42px] pr-3 bg-transparent border-none font-semibold text-gray-800 text-[13px] outline-none"
                   value={bulan}
                   onChange={(e) => setBulan(e.target.value)}
                   required
                 />
               </div>
-              <span className="field-hint">Periode iuran yang dilaporkan</span>
+              <span className="text-[10px] text-gray-400 mt-[1px]">Periode iuran yang dilaporkan</span>
             </div>
 
-            <div className="form-group">
-              <label>Nominal (Rp)</label>
-              <div className="nominal-input-wrapper">
-                <span className="currency-prefix">Rp</span>
+            <div className="flex flex-col gap-[3px]">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.25px]">Nominal (Rp)</label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-gray-700 font-semibold text-[13px] z-[1] pointer-events-none">Rp</span>
+                <div className="absolute left-10 top-[9px] bottom-[9px] w-[1px] bg-gray-200 pointer-events-none"></div>
                 <input
                   type="text"
-                  className="input-field with-prefix tabular-nums"
+                  className="w-full min-h-[40px] pl-[50px] pr-3 rounded-[10px] text-[13px] bg-[#fcfdff] border border-gray-200 outline-none font-sans text-gray-900 tabular-nums focus:border-blue-500"
                   placeholder="0"
                   value={nominal}
                   onChange={handleNominalChange}
@@ -453,19 +460,18 @@ export default function PaymentModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Catatan Tambahan (Opsional)</label>
+            <div className="flex flex-col gap-[3px]">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.25px]">Catatan Tambahan (Opsional)</label>
               <textarea
-                className="input-field"
-                rows="2"
+                className="w-full min-h-[72px] px-3 py-[9px] rounded-[10px] text-[13px] bg-[#fcfdff] border border-gray-200 outline-none font-sans text-gray-900 resize-y focus:border-blue-500"
                 placeholder="Contoh: Titip iuran sekalian buat Pak RT"
                 value={catatan}
                 onChange={(e) => setCatatan(e.target.value)}
               />
             </div>
 
-            <div className="form-group">
-              <label>
+            <div className="flex flex-col gap-[3px]">
+              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.25px]">
                 {transactionType === "pengeluaran" && isAdmin
                   ? "Upload Lampiran (Opsional)"
                   : "Upload Bukti Transfer"}
@@ -473,41 +479,26 @@ export default function PaymentModal({ isOpen, onClose }) {
 
               {!previewUrl ? (
                 <div
-                  className="image-upload-area"
+                  className="border-2 border-dashed border-gray-200 rounded-xl p-[22px_14px] flex flex-col items-center justify-center text-gray-400 bg-gray-50 cursor-pointer transition-colors hover:bg-gray-100"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Camera size={32} style={{ marginBottom: "8px" }} />
-                  <p
-                    className="caption"
-                    style={{ color: "#4b5563", fontWeight: 600 }}
-                  >
+                  <Camera size={32} className="mb-2" />
+                  <p className="text-[13px] font-semibold text-gray-600 m-0">
                     Klik untuk ambil foto / galeri
                   </p>
                   {transactionType === "pengeluaran" && isAdmin && (
-                    <p
-                      style={{ fontSize: "10px" }}
-                      className="text-secondary mt-1"
-                    >
+                    <p className="text-[10px] text-gray-500 mt-1 m-0">
                       Boleh dikosongkan jika tidak ada lampiran.
                     </p>
                   )}
-                  <p
-                    style={{ fontSize: "10px" }}
-                    className="text-secondary mt-1"
-                  >
-                    Maks. 500KB
-                  </p>
+                  <p className="text-[10px] text-gray-500 mt-1 m-0">Maks. 500KB</p>
                 </div>
               ) : (
-                <div className="image-preview-area">
-                  <img
-                    src={previewUrl}
-                    alt="Bukti Pembayaran"
-                    className="preview-img"
-                  />
+                <div className="relative w-full rounded-xl overflow-hidden bg-gray-50 border border-gray-200">
+                  <img src={previewUrl} alt="Bukti Pembayaran" className="w-full max-h-[200px] object-cover block" />
                   <button
                     type="button"
-                    className="remove-img-btn"
+                    className="absolute top-2 right-2 bg-white/90 text-red-500 border-none rounded-full p-1.5 cursor-pointer flex items-center justify-center shadow-sm"
                     onClick={() => setPreviewUrl(null)}
                   >
                     <X size={16} />
@@ -519,15 +510,14 @@ export default function PaymentModal({ isOpen, onClose }) {
                 type="file"
                 accept="image/*"
                 ref={fileInputRef}
-                style={{ display: "none" }}
+                className="hidden"
                 onChange={handleImageUpload}
               />
             </div>
 
             <button
               type="submit"
-              className="btn-primary"
-              style={{ marginTop: "16px" }}
+              className="bg-[#0f4c81] text-white border-none rounded-lg mt-4 min-h-[40px] text-[14px] font-semibold cursor-pointer w-full flex items-center justify-center gap-2 transition-opacity active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             >
               {loading
@@ -540,49 +530,40 @@ export default function PaymentModal({ isOpen, onClose }) {
 
           {isAdmin && isCategoryEditorOpen && (
             <div
-              className="category-popup-overlay"
+              className="absolute inset-0 z-[5] bg-slate-900/45 flex items-center justify-center p-4 max-h-[820px]:fixed max-h-[820px]:z-[120] max-h-[820px]:p-0 max-[480px]:items-stretch"
               onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  setIsCategoryEditorOpen(false);
-                }
+                if (e.target === e.currentTarget) setIsCategoryEditorOpen(false);
               }}
             >
-              <div className="category-popup">
-                <div className="category-popup-header">
-                  <h4>
-                    {transactionType === "pengeluaran"
-                      ? "Kelola Kategori Pengeluaran"
-                      : "Kelola Jenis Iuran"}
+              <div className="w-full max-w-[420px] max-h-[78vh] overflow-y-auto bg-white rounded-[14px] p-3 border border-slate-200 shadow-[0_14px_40px_rgba(15,23,42,0.2)] max-[480px]:max-w-none max-[480px]:max-h-none max-[480px]:h-full max-[480px]:rounded-none max-[480px]:border-none max-[480px]:shadow-none max-[480px]:p-[14px_14px_18px] max-[480px]:flex max-[480px]:flex-col">
+                <div className="flex items-center justify-between mb-1.5 max-[480px]:sticky max-[480px]:top-0 max-[480px]:z-[2] max-[480px]:bg-white max-[480px]:pb-2 max-[480px]:mb-2 max-[480px]:border-b max-[480px]:border-slate-200">
+                  <h4 className="m-0 text-[13px] font-bold text-slate-900">
+                    {transactionType === "pengeluaran" ? "Kelola Kategori Pengeluaran" : "Kelola Jenis Iuran"}
                   </h4>
                   <button
                     type="button"
-                    className="category-popup-close"
+                    className="border-none bg-slate-100 text-slate-600 rounded-lg w-7 h-7 inline-flex items-center justify-center cursor-pointer"
                     onClick={() => setIsCategoryEditorOpen(false)}
                   >
                     <X size={16} />
                   </button>
                 </div>
 
-                <p className="category-popup-hint">
-                  Tambah, hapus, atau drag kategori untuk mengatur urutan
-                  dropdown.
+                <p className="m-0 mb-2.5 text-[11px] text-slate-500 max-[480px]:mb-2">
+                  Tambah, hapus, atau drag kategori untuk mengatur urutan dropdown.
                 </p>
 
-                <div className="category-input-row">
+                <div className="grid grid-cols-[1fr_auto] gap-2 mb-2 max-[480px]:mb-2">
                   <input
                     type="text"
-                    className="input-field"
-                    placeholder={
-                      transactionType === "pengeluaran"
-                        ? "Tambah kategori pengeluaran"
-                        : "Tambah jenis iuran"
-                    }
+                    className="w-full min-h-[40px] px-3 py-[9px] rounded-[10px] text-[13px] bg-[#fcfdff] border border-gray-200 outline-none font-sans text-gray-900 focus:border-blue-500"
+                    placeholder={transactionType === "pengeluaran" ? "Tambah kategori pengeluaran" : "Tambah jenis iuran"}
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                   />
                   <button
                     type="button"
-                    className="btn-add-category"
+                    className="border-none rounded-[9px] bg-teal-700 text-white text-[11px] font-bold px-3 min-h-[34px] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     onClick={handleAddCategory}
                     disabled={addingCategory}
                   >
@@ -590,12 +571,14 @@ export default function PaymentModal({ isOpen, onClose }) {
                   </button>
                 </div>
 
-                <div className="category-chip-wrap popup">
+                <div className="flex flex-wrap gap-1.5 mt-2.5 max-h-[42vh] overflow-y-auto max-[480px]:flex-1 max-[480px]:max-h-none max-[480px]:content-start max-[480px]:pb-2.5">
                   {getActiveOptions().map((opt, idx) => (
                     <button
                       key={opt}
                       type="button"
-                      className={`category-chip ${kategori === opt ? "active" : ""} ${sortingCategory ? "sorting" : ""} ${dragIndex === idx ? "dragging" : ""}`}
+                      className={`inline-flex items-center gap-1.5 border rounded-full text-[10px] font-semibold p-[5px_7px_5px_9px] cursor-pointer max-[480px]:min-h-[34px] ${
+                        kategori === opt ? "border-blue-300 bg-blue-50 text-blue-700" : "border-[#dbe3ee] bg-white text-slate-600"
+                      } ${sortingCategory ? "cursor-grab" : ""} ${dragIndex === idx ? "opacity-50" : ""}`}
                       onClick={() => setKategori(opt)}
                       draggable
                       onDragStart={() => setDragIndex(idx)}
@@ -606,10 +589,10 @@ export default function PaymentModal({ isOpen, onClose }) {
                       }}
                       onDragEnd={() => setDragIndex(null)}
                     >
-                      <span className="drag-handle">::</span>
+                      <span className="text-[10px] tracking-[-1px] text-slate-400">::</span>
                       <span>{opt}</span>
                       <span
-                        className="chip-delete"
+                        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-red-500 hover:bg-red-500/10"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteCategory(opt);
@@ -622,7 +605,7 @@ export default function PaymentModal({ isOpen, onClose }) {
                 </div>
 
                 {sortingCategory && (
-                  <span className="category-saving-hint">
+                  <span className="inline-block mt-2.5 text-[11px] text-slate-500">
                     Menyimpan urutan...
                   </span>
                 )}

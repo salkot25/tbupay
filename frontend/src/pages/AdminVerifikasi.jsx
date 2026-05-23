@@ -15,7 +15,6 @@ import {
 import useStore from "../store/useStore";
 import CacheFallbackBadge from "../components/CacheFallbackBadge";
 import usePullToRefresh from "../hooks/usePullToRefresh";
-import "./AdminVerifikasi.css";
 
 const FILTERS = [
   { key: "pending", label: "Menunggu" },
@@ -187,85 +186,76 @@ export default function AdminVerifikasi() {
   // Guard: only admin can see this page
   if (user?.role !== "admin") {
     return (
-      <div className="admin-page">
-        <div className="empty-state">
+      <div className="px-4 pb-6">
+        <div className="text-center py-12 px-4 text-gray-400 flex flex-col items-center gap-2">
           <ShieldCheck size={48} color="#9ca3af" />
-          <p>Akses Terbatas</p>
-          <span>Halaman ini hanya untuk Admin.</span>
+          <p className="text-[14px] font-semibold text-gray-700 m-0">Akses Terbatas</p>
+          <span className="text-[12px]">Halaman ini hanya untuk Admin.</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="admin-page fade-in" {...pull.bind}>
+    <div className="px-4 pb-6 animate-[fadeIn_0.3s_ease-in-out]" {...pull.bind}>
       {pull.showPullHint && (
-        <div className={`pull-refresh-hint ${pull.isReady ? "ready" : ""}`}>
+        <div className={`sticky top-2 z-[31] mx-auto mb-2.5 w-fit px-3 py-[7px] rounded-full border text-xs font-semibold ${pull.isReady ? "border-green-300 bg-green-50 text-green-800" : "border-indigo-200 bg-indigo-50 text-indigo-800"}`}>
           {pull.isReady ? "Lepas untuk muat ulang" : "Tarik untuk muat ulang"}
         </div>
       )}
       <CacheFallbackBadge source={dataSource} />
       {/* Header */}
-      <div className="admin-header">
+      <div className="py-4 pb-3 flex justify-between items-center">
         <div>
-          <h2>Verifikasi Pembayaran</h2>
-          <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+          <h2 className="text-[20px] font-bold text-gray-800 m-0">Verifikasi Pembayaran</h2>
+          <p className="text-[12px] text-gray-400 mt-[2px] m-0">
             Tinjau bukti bayar warga
           </p>
         </div>
         <button
-          className={`refresh-btn ${refreshing ? "spinning" : ""}`}
+          className="flex items-center gap-1 bg-gray-100 border-none p-[6px_10px] rounded-lg cursor-pointer text-gray-500 text-[12px] font-semibold transition-colors hover:bg-gray-200"
           onClick={() => fetchData(true, true)}
           disabled={refreshing}
         >
-          <RefreshCw size={14} />
+          <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
           {refreshing ? "Memuat..." : "Refresh"}
         </button>
       </div>
 
       {/* Stats */}
-      <div className="admin-stats-row">
-        <div className="stat-card pending" onClick={() => setFilter("pending")}>
-          <div className="stat-value">{pendingCount}</div>
-          <div className="stat-label">Menunggu</div>
+      <div className="grid grid-cols-3 gap-2.5 mb-5">
+        <div className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100 cursor-pointer" onClick={() => setFilter("pending")}>
+          <div className="text-[22px] font-extrabold text-amber-500">{pendingCount}</div>
+          <div className="text-[10px] text-gray-400 mt-[2px] uppercase font-semibold">Menunggu</div>
         </div>
         <div
-          className="stat-card verified"
+          className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100 cursor-pointer"
           onClick={() => setFilter("verified")}
         >
-          <div className="stat-value">{verifiedCount}</div>
-          <div className="stat-label">Terverifikasi</div>
+          <div className="text-[22px] font-extrabold text-green-500">{verifiedCount}</div>
+          <div className="text-[10px] text-gray-400 mt-[2px] uppercase font-semibold">Terverifikasi</div>
         </div>
         <div
-          className="stat-card rejected"
+          className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100 cursor-pointer"
           onClick={() => setFilter("rejected")}
         >
-          <div className="stat-value">{rejectedCount}</div>
-          <div className="stat-label">Ditolak</div>
+          <div className="text-[22px] font-extrabold text-red-500">{rejectedCount}</div>
+          <div className="text-[10px] text-gray-400 mt-[2px] uppercase font-semibold">Ditolak</div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="filter-tabs">
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
         {FILTERS.map((f) => (
           <button
             key={f.key}
-            className={`filter-tab ${filter === f.key ? "active" : ""}`}
+            className={`p-[6px_16px] rounded-full border border-gray-200 bg-white text-[12px] font-semibold text-gray-500 cursor-pointer whitespace-nowrap transition-all ${filter === f.key ? "!bg-blue-600 !border-blue-600 !text-white" : ""}`}
             onClick={() => setFilter(f.key)}
           >
             {f.label}
             {f.key === "pending" && pendingCount > 0 && (
               <span
-                style={{
-                  marginLeft: 6,
-                  background:
-                    filter === "pending" ? "rgba(255,255,255,0.3)" : "#fef3c7",
-                  color: filter === "pending" ? "white" : "#d97706",
-                  borderRadius: 9999,
-                  padding: "1px 6px",
-                  fontSize: 10,
-                  fontWeight: 700,
-                }}
+                className={`ml-1.5 rounded-full p-[1px_6px] text-[10px] font-bold ${filter === "pending" ? "bg-white/30 text-white" : "bg-amber-100 text-amber-600"}`}
               >
                 {pendingCount}
               </span>
@@ -276,40 +266,40 @@ export default function AdminVerifikasi() {
 
       {/* List */}
       {loading ? (
-        <div className="loading-overlay">
+        <div className="text-center py-12 px-0 text-gray-400 text-[13px]">
           <RefreshCw
             size={28}
-            style={{
-              margin: "0 auto 8px",
-              display: "block",
-              animation: "spin 0.8s linear infinite",
-            }}
+            className="mx-auto mb-2 block animate-spin"
           />
           Memuat data transaksi...
         </div>
       ) : filtered.length === 0 ? (
-        <div className="empty-state">
+        <div className="text-center py-12 px-4 text-gray-400 flex flex-col items-center gap-2">
           <InboxIcon size={48} color="#9ca3af" />
-          <p>Tidak ada transaksi</p>
-          <span>
+          <p className="text-[14px] font-semibold text-gray-700 m-0">Tidak ada transaksi</p>
+          <span className="text-[12px]">
             {filter === "pending"
               ? "Semua bukti bayar sudah ditangani."
               : `Tidak ada data dengan status "${filter}".`}
           </span>
         </div>
       ) : (
-        <div className="verif-list">
+        <div className="flex flex-col gap-3">
           {filtered.map((trx) => (
-            <div key={trx.id_transaksi} className="verif-card">
+            <div key={trx.id_transaksi} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
               {/* Card Header */}
-              <div className="verif-card-header">
-                <div className="verif-user-info">
-                  <span className="verif-user-name">{trx.id_user}</span>
-                  <span className="verif-user-blok">
+              <div className="flex justify-between items-center p-[14px_16px_10px] border-b border-dashed border-gray-100">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[14px] font-bold text-gray-800">{trx.id_user}</span>
+                  <span className="text-[11px] text-gray-400">
                     {timeAgo(trx.timestamp)}
                   </span>
                 </div>
-                <span className={`status-pill ${trx.status}`}>
+                <span className={`text-[10px] font-bold p-[3px_10px] rounded-full ${
+                  trx.status === 'pending' ? 'bg-amber-100 text-amber-600' :
+                  trx.status === 'verified' ? 'bg-green-100 text-green-600' :
+                  'bg-red-100 text-red-600'
+                }`}>
                   {trx.status === "pending"
                     ? "⏳ Menunggu"
                     : trx.status === "verified"
@@ -319,33 +309,33 @@ export default function AdminVerifikasi() {
               </div>
 
               {/* Card Body */}
-              <div className="verif-card-body">
-                <div className="verif-detail-row">
-                  <span className="verif-label">Keterangan</span>
-                  <span className="verif-value">{trx.keterangan || "-"}</span>
+              <div className="p-[12px_16px]">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[11px] text-gray-400 font-semibold uppercase">Keterangan</span>
+                  <span className="text-[13px] font-semibold text-gray-700">{trx.keterangan || "-"}</span>
                 </div>
-                <div className="verif-detail-row">
-                  <span className="verif-label">Nominal</span>
-                  <span className="verif-value amount">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[11px] text-gray-400 font-semibold uppercase">Nominal</span>
+                  <span className="text-[16px] font-extrabold text-green-600">
                     {formatRp(trx.nominal)}
                   </span>
                 </div>
-                <div className="verif-detail-row">
-                  <span className="verif-label">Jenis</span>
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[11px] text-gray-400 font-semibold uppercase">Jenis</span>
                   <span
-                    className="verif-value"
-                    style={{ textTransform: "capitalize" }}
+                    className="text-[13px] font-semibold text-gray-700 capitalize"
                   >
                     {trx.jenis}
                   </span>
                 </div>
 
                 {/* Bukti foto */}
-                <div className="bukti-img-wrap">
+                <div className="my-2.5 rounded-[10px] overflow-hidden border border-gray-200 bg-gray-50 max-h-[180px] flex items-center justify-center">
                   {trx.url_bukti ? (
                     <img
                       src={getDriveImgUrl(trx.url_bukti)}
                       alt="Bukti Pembayaran"
+                      className="w-full max-h-[180px] object-cover block"
                       onError={(e) => {
                         e.target.style.display = "none";
                         e.target.nextSibling.style.display = "flex";
@@ -353,16 +343,12 @@ export default function AdminVerifikasi() {
                     />
                   ) : null}
                   <div
-                    className="no-bukti"
+                    className="text-[11px] text-gray-400 p-6 text-center flex-col items-center justify-center"
                     style={{ display: trx.url_bukti ? "none" : "flex" }}
                   >
                     <ImageOff
                       size={24}
-                      style={{
-                        margin: "0 auto 6px",
-                        display: "block",
-                        color: "#d1d5db",
-                      }}
+                      className="mx-auto mb-1.5 block text-gray-300"
                     />
                     Tidak ada bukti foto
                   </div>
@@ -371,9 +357,9 @@ export default function AdminVerifikasi() {
 
               {/* Action Buttons — only show for pending */}
               {trx.status === "pending" && (
-                <div className="verif-actions">
+                <div className="grid grid-cols-2 gap-2 p-[0_16px_14px]">
                   <button
-                    className="btn-verify approve"
+                    className="p-2.5 rounded-[10px] border-none text-[13px] font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 bg-green-100 text-green-800 hover:bg-green-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={processingId === trx.id_transaksi}
                     onClick={() => handleAction(trx, "verify")}
                   >
@@ -383,7 +369,7 @@ export default function AdminVerifikasi() {
                       : "Setujui"}
                   </button>
                   <button
-                    className="btn-verify reject"
+                    className="p-2.5 rounded-[10px] border-none text-[13px] font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 bg-red-100 text-red-800 hover:bg-red-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={processingId === trx.id_transaksi}
                     onClick={() => handleAction(trx, "reject")}
                   >

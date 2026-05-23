@@ -14,7 +14,6 @@ import {
 import { Bar, Doughnut } from "react-chartjs-2";
 import CacheFallbackBadge from "../components/CacheFallbackBadge";
 import usePullToRefresh from "../hooks/usePullToRefresh";
-import "./Cashflow.css";
 
 ChartJS.register(
   CategoryScale,
@@ -310,43 +309,43 @@ export default function Cashflow() {
   };
 
   return (
-    <div className="keuangan-container fade-in" {...pull.bind}>
+    <div className="pb-6 animate-[fadeIn_0.3s_ease-in-out]" {...pull.bind}>
       {pull.showPullHint && (
-        <div className={`pull-refresh-hint ${pull.isReady ? "ready" : ""}`}>
+        <div className={`sticky top-2 z-[31] mx-auto mb-2.5 w-fit px-3 py-[7px] rounded-full border text-xs font-semibold ${pull.isReady ? "border-green-300 bg-green-50 text-green-800" : "border-indigo-200 bg-indigo-50 text-indigo-800"}`}>
           {pull.isReady ? "Lepas untuk muat ulang" : "Tarik untuk muat ulang"}
         </div>
       )}
       <CacheFallbackBadge source={dataSource} />
-      <div className="page-header">
-        <h2>Laporan Keuangan</h2>
+      <div className="py-4 mb-2">
+        <h2 className="text-xl font-bold text-gray-800 m-0">Laporan Keuangan</h2>
       </div>
 
-      <h3 className="section-title">Ringkasan Kas RT</h3>
+      <h3 className="font-bold text-gray-700 mb-4 text-[14px]">Ringkasan Kas RT</h3>
 
-      <div className="summary-card">
-        <div className="summary-header">
+      <div className="bg-white p-5 rounded-2xl shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] border border-gray-100 mb-4">
+        <div className="flex justify-between items-start">
           <div>
-            <p className="caption text-secondary">Total Saldo Tersedia</p>
-            <p className="total-amount">{formatRupiah(totalSaldo)}</p>
+            <p className="text-gray-400 text-[12px] m-0">Total Saldo Tersedia</p>
+            <p className="text-2xl font-bold text-green-600 mt-1 mb-0">{formatRupiah(totalSaldo)}</p>
           </div>
-          <div className="icon-box-green">
+          <div className="p-2 bg-green-50 text-green-600 rounded-lg">
             <TrendingUp size={20} />
           </div>
         </div>
-        <div className="summary-footer">
+        <div className="mt-4 pt-4 border-t border-dashed border-gray-200 flex justify-between text-center">
           <div>
-            <p className="footer-label">Status Data</p>
-            <p className="footer-value">Terhubung Server</p>
+            <p className="text-[10px] text-gray-400 uppercase m-0">Status Data</p>
+            <p className="text-[14px] font-bold text-gray-700 m-0">Terhubung Server</p>
           </div>
         </div>
       </div>
 
       {/* Grafik Arus Kas */}
-      <div className="chart-card">
-        <div className="chart-header">
-          <h3 className="chart-title">Grafik Arus Kas</h3>
+      <div className="bg-white p-4 rounded-2xl shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] border border-gray-100 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-gray-700 text-[14px] m-0">Grafik Arus Kas</h3>
           <select
-            className="chart-select"
+            className="text-[12px] font-medium bg-gray-50 border border-gray-200 rounded-lg p-1.5 outline-none focus:border-blue-500"
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
           >
@@ -357,25 +356,25 @@ export default function Cashflow() {
             ))}
           </select>
         </div>
-        <div className="chart-wrapper">
+        <div className="relative h-48 w-full">
           {barData && <Bar data={barData} options={barOptions} />}
         </div>
-        <div className="chart-legend">
-          <div className="legend-item">
-            <div className="legend-dot bg-green"></div>Pemasukan
+        <div className="flex justify-center gap-4 mt-3 text-[10px] font-medium text-gray-500">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>Pemasukan
           </div>
-          <div className="legend-item">
-            <div className="legend-dot bg-red"></div>Pengeluaran
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-red-500"></div>Pengeluaran
           </div>
         </div>
       </div>
 
       {/* Grafik Kategori Pengeluaran */}
-      <div className="chart-card">
-        <div className="chart-header">
-          <h3 className="chart-title">Kategori Pengeluaran</h3>
+      <div className="bg-white p-4 rounded-2xl shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] border border-gray-100 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-gray-700 text-[14px] m-0">Kategori Pengeluaran</h3>
           <select
-            className="chart-select"
+            className="text-[12px] font-medium bg-gray-50 border border-gray-200 rounded-lg p-1.5 outline-none focus:border-blue-500"
             value={selectedMonthKey}
             onChange={(e) => setSelectedMonthKey(e.target.value)}
           >
@@ -386,18 +385,18 @@ export default function Cashflow() {
             ))}
           </select>
         </div>
-        <div className="doughnut-wrapper">
+        <div className="relative h-40 w-full flex justify-center">
           {doughnutData && (
             <Doughnut data={doughnutData} options={doughnutOptions} />
           )}
         </div>
       </div>
 
-      <h3 className="section-title">Alokasi Dana Terakhir</h3>
-      <div className="mutasi-list">
-        {loading && <div className="loading-state">Memuat mutasi kas...</div>}
+      <h3 className="font-bold text-gray-700 mb-4 text-[14px]">Alokasi Dana Terakhir</h3>
+      <div className="flex flex-col gap-3">
+        {loading && <div className="p-4 text-center text-[12px] text-gray-400">Memuat mutasi kas...</div>}
         {!loading && transactions.length === 0 && (
-          <div className="empty-state">Belum ada transaksi kas.</div>
+          <div className="p-4 text-center text-[12px] text-gray-400">Belum ada transaksi kas.</div>
         )}
 
         {!loading &&
@@ -406,11 +405,11 @@ export default function Cashflow() {
             return (
               <div
                 key={trx.id_transaksi || Math.random()}
-                className="mutasi-item"
+                className="bg-white p-4 rounded-xl flex items-center justify-between border border-gray-100 shadow-sm"
               >
-                <div className="mutasi-left">
+                <div className="flex items-center gap-3">
                   <div
-                    className={`mutasi-icon ${isPemasukan ? "bg-green-light text-green" : "bg-red-light text-red"}`}
+                    className={`p-2 rounded-lg shrink-0 ${isPemasukan ? "bg-green-100 text-green-600" : "bg-red-100 text-red-500"}`}
                   >
                     {isPemasukan ? (
                       <ArrowDownLeft size={20} />
@@ -418,9 +417,9 @@ export default function Cashflow() {
                       <ArrowUpRight size={20} />
                     )}
                   </div>
-                  <div>
-                    <p className="mutasi-title">{trx.keterangan}</p>
-                    <p className="mutasi-date">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-bold text-gray-800 m-0 truncate">{trx.keterangan}</p>
+                    <p className="text-[10px] text-gray-400 m-0 mt-0.5">
                       {new Date(trx.timestamp).toLocaleDateString("id-ID", {
                         day: "2-digit",
                         month: "short",
@@ -430,7 +429,7 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p
-                  className={`mutasi-amount tabular-nums ${isPemasukan ? "text-green" : "text-red"}`}
+                  className={`text-[14px] font-bold tabular-nums shrink-0 m-0 ${isPemasukan ? "text-green-600" : "text-red-500"}`}
                 >
                   {isPemasukan ? "+" : "-"} {formatRupiah(trx.nominal)}
                 </p>

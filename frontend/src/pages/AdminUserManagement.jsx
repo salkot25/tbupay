@@ -18,7 +18,6 @@ import {
 import useStore from "../store/useStore";
 import CacheFallbackBadge from "../components/CacheFallbackBadge";
 import usePullToRefresh from "../hooks/usePullToRefresh";
-import "./AdminUserManagement.css";
 
 const EMPTY_FORM = {
   nama: "",
@@ -158,10 +157,10 @@ export default function AdminUserManagement() {
   // Guard
   if (currentUser?.role !== "admin") {
     return (
-      <div className="user-mgmt-page">
-        <div className="um-empty">
+      <div className="px-4 pb-[100px]">
+        <div className="text-center py-12 px-4 text-gray-400 flex flex-col items-center gap-2 text-[13px]">
           <ShieldCheck size={48} color="#9ca3af" />
-          <p>Akses Terbatas</p>
+          <p className="font-semibold text-gray-700 text-[14px] m-0">Akses Terbatas</p>
           <span>Halaman ini hanya untuk Admin.</span>
         </div>
       </div>
@@ -182,31 +181,30 @@ export default function AdminUserManagement() {
   };
 
   return (
-    <div className="user-mgmt-page fade-in" {...pull.bind}>
+    <div className="px-4 pb-[100px] animate-[fadeIn_0.3s_ease-in-out]" {...pull.bind}>
       {pull.showPullHint && (
-        <div className={`pull-refresh-hint ${pull.isReady ? "ready" : ""}`}>
+        <div className={`sticky top-2 z-[31] mx-auto mb-2.5 w-fit px-3 py-[7px] rounded-full border text-xs font-semibold ${pull.isReady ? "border-green-300 bg-green-50 text-green-800" : "border-indigo-200 bg-indigo-50 text-indigo-800"}`}>
           {pull.isReady ? "Lepas untuk muat ulang" : "Tarik untuk muat ulang"}
         </div>
       )}
       <CacheFallbackBadge source={dataSource} />
       {/* Header */}
-      <div className="user-mgmt-header">
+      <div className="py-4 pb-3 flex justify-between items-center">
         <div>
-          <h2>Manajemen Pengguna</h2>
-          <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+          <h2 className="text-[20px] font-bold text-gray-800 m-0">Manajemen Pengguna</h2>
+          <p className="text-[12px] text-gray-400 mt-[2px] m-0">
             {users.length} pengguna terdaftar
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <button
-            className={`add-user-btn`}
-            style={{ background: "#f3f4f6", color: "#6b7280" }}
+            className={`flex items-center gap-1.5 rounded-[10px] p-[8px_14px] text-[13px] font-bold cursor-pointer transition-opacity bg-gray-100 text-gray-500 border-none hover:opacity-90`}
             onClick={() => fetchUsers(true, true)}
             disabled={refreshing}
           >
-            <RefreshCw size={14} className={refreshing ? "spinning" : ""} />
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
           </button>
-          <button className="add-user-btn" onClick={openAdd}>
+          <button className="flex items-center gap-1.5 bg-[#0f4c81] text-white border-none rounded-[10px] p-[8px_14px] text-[13px] font-bold cursor-pointer transition-opacity hover:opacity-90" onClick={openAdd}>
             <Plus size={16} />
             Tambah
           </button>
@@ -214,27 +212,28 @@ export default function AdminUserManagement() {
       </div>
 
       {/* Stats */}
-      <div className="user-stats-row">
-        <div className="user-stat-card warga">
-          <div className="stat-num">{counts.warga}</div>
-          <div className="stat-name">Warga</div>
+      <div className="grid grid-cols-3 gap-2.5 mb-5">
+        <div className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100">
+          <div className="text-[22px] font-extrabold text-blue-600">{counts.warga}</div>
+          <div className="text-[10px] text-gray-400 mt-[2px] uppercase font-semibold">Warga</div>
         </div>
-        <div className="user-stat-card admin">
-          <div className="stat-num">{counts.admin}</div>
-          <div className="stat-name">Admin</div>
+        <div className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100">
+          <div className="text-[22px] font-extrabold text-purple-600">{counts.admin}</div>
+          <div className="text-[10px] text-gray-400 mt-[2px] uppercase font-semibold">Admin</div>
         </div>
-        <div className="user-stat-card petugas">
-          <div className="stat-num">{counts.petugas}</div>
-          <div className="stat-name">Petugas</div>
+        <div className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100">
+          <div className="text-[22px] font-extrabold text-cyan-600">{counts.petugas}</div>
+          <div className="text-[10px] text-gray-400 mt-[2px] uppercase font-semibold">Petugas</div>
         </div>
       </div>
 
       {/* Search */}
-      <div className="search-box">
-        <Search size={16} className="search-icon" />
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           type="text"
           placeholder="Cari nama, blok, atau role..."
+          className="w-full p-[10px_12px_10px_38px] border border-gray-200 rounded-xl bg-white text-[13px] outline-none font-sans focus:border-blue-600"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -242,17 +241,17 @@ export default function AdminUserManagement() {
 
       {/* User List */}
       {loading ? (
-        <div className="um-empty">
+        <div className="text-center py-12 px-4 text-gray-400 flex flex-col items-center gap-2 text-[13px]">
           <RefreshCw
             size={28}
-            style={{ animation: "spin 0.8s linear infinite" }}
+            className="animate-spin"
           />
           <span>Memuat data pengguna...</span>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="um-empty">
+        <div className="text-center py-12 px-4 text-gray-400 flex flex-col items-center gap-2 text-[13px]">
           <Users size={40} color="#d1d5db" />
-          <p>Tidak ada pengguna</p>
+          <p className="font-semibold text-gray-700 text-[14px] m-0">Tidak ada pengguna</p>
           <span>
             {search
               ? "Coba kata kunci lain."
@@ -260,32 +259,40 @@ export default function AdminUserManagement() {
           </span>
         </div>
       ) : (
-        <div className="user-list">
+        <div className="flex flex-col gap-2.5">
           {filtered.map((user) => (
-            <div key={user.id_user} className={`user-card role-${user.role}`}>
-              <div className="user-avatar">
+            <div key={user.id_user} className="bg-white rounded-2xl border border-gray-100 p-[14px_16px] flex items-center gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-[16px] font-extrabold shrink-0 ${
+                user.role === 'warga' ? 'bg-blue-100 text-blue-700' :
+                user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                'bg-cyan-100 text-cyan-700'
+              }`}>
                 {user.nama?.charAt(0)?.toUpperCase() || "?"}
               </div>
-              <div className="user-info">
-                <div className="user-name">{user.nama}</div>
-                <div className="user-meta">
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-bold text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">{user.nama}</div>
+                <div className="text-[11px] text-gray-400 mt-[2px] flex items-center gap-1.5">
                   <span>{user.blok_rumah}</span>
                   {user.no_hp && <span>· {user.no_hp}</span>}
                 </div>
-                <span className={`role-badge-pill ${user.role}`}>
+                <span className={`text-[10px] font-bold p-[2px_8px] rounded-full capitalize inline-block mt-1 ${
+                  user.role === 'warga' ? 'bg-blue-100 text-blue-700' :
+                  user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                  'bg-cyan-100 text-cyan-700'
+                }`}>
                   {user.role}
                 </span>
               </div>
-              <div className="user-actions">
+              <div className="flex gap-2">
                 <button
-                  className="icon-btn edit"
+                  className="w-[34px] h-[34px] rounded-lg border-none cursor-pointer flex items-center justify-center transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100"
                   onClick={() => openEdit(user)}
                   title="Edit"
                 >
                   <Pencil size={15} />
                 </button>
                 <button
-                  className="icon-btn del"
+                  className="w-[34px] h-[34px] rounded-lg border-none cursor-pointer flex items-center justify-center transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => handleDelete(user)}
                   title="Hapus"
                   disabled={user.id_user === currentUser?.id_user}
@@ -300,40 +307,28 @@ export default function AdminUserManagement() {
 
       {/* Add / Edit Form Modal */}
       <div
-        className={`user-form-overlay ${isFormOpen ? "open" : ""}`}
+        className={`fixed inset-0 z-[70] flex justify-center items-end bg-transparent pointer-events-none transition-colors duration-300 ${isFormOpen ? "bg-black/50 pointer-events-auto" : ""}`}
         onClick={(e) => {
-          if (e.target.classList.contains("user-form-overlay")) closeForm();
+          if (e.target === e.currentTarget) closeForm();
         }}
       >
-        <div className="user-form-sheet">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <h3 className="user-form-title">
+        <div className={`w-full max-w-[480px] bg-white rounded-t-3xl p-[24px_20px] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col gap-[14px] max-h-[85vh] overflow-y-auto ${isFormOpen ? "translate-y-0" : "translate-y-full"}`}>
+          <div className="flex justify-between items-center">
+            <h3 className="text-[18px] font-bold text-gray-800 m-0">
               {editTarget ? "Edit Pengguna" : "Tambah Pengguna Baru"}
             </h3>
             <button
               onClick={closeForm}
-              style={{
-                background: "#f3f4f6",
-                border: "none",
-                borderRadius: "50%",
-                padding: 8,
-                cursor: "pointer",
-              }}
+              className="bg-gray-100 border-none rounded-full p-2 cursor-pointer text-gray-500 hover:bg-gray-200 transition-colors"
             >
-              <X size={18} color="#6b7280" />
+              <X size={18} />
             </button>
           </div>
 
-          <div className="form-field">
-            <label>Nama Lengkap</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-gray-500 uppercase">Nama Lengkap</label>
             <input
-              className="form-input"
+              className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
               type="text"
               placeholder="Contoh: Pak Budi Santoso"
               value={form.nama}
@@ -341,11 +336,11 @@ export default function AdminUserManagement() {
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-field">
-              <label>Blok / Username</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-gray-500 uppercase">Blok / Username</label>
               <input
-                className="form-input"
+                className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
                 type="text"
                 placeholder="A-12"
                 value={form.blok_rumah}
@@ -353,14 +348,14 @@ export default function AdminUserManagement() {
                   setForm((p) => ({ ...p, blok_rumah: e.target.value }))
                 }
               />
-              <span className="form-hint">
+              <span className="text-[10px] text-gray-400 mt-[2px]">
                 Digunakan sebagai username login
               </span>
             </div>
-            <div className="form-field">
-              <label>No. HP</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-gray-500 uppercase">No. HP</label>
               <input
-                className="form-input"
+                className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
                 type="tel"
                 placeholder="08xxxxxxxxxx"
                 value={form.no_hp}
@@ -371,11 +366,11 @@ export default function AdminUserManagement() {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-field">
-              <label>Role</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-gray-500 uppercase">Role</label>
               <select
-                className="form-input"
+                className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
                 value={form.role}
                 onChange={(e) =>
                   setForm((p) => ({ ...p, role: e.target.value }))
@@ -386,10 +381,10 @@ export default function AdminUserManagement() {
                 <option value="admin">Admin</option>
               </select>
             </div>
-            <div className="form-field">
-              <label>Password</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-gray-500 uppercase">Password</label>
               <input
-                className="form-input"
+                className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
                 type="password"
                 placeholder={
                   editTarget ? "(biarkan kosong)" : "Default: 123456"
@@ -400,31 +395,22 @@ export default function AdminUserManagement() {
                 }
               />
               {editTarget && (
-                <span className="form-hint">Kosongkan jika tidak diubah</span>
+                <span className="text-[10px] text-gray-400 mt-[2px]">Kosongkan jika tidak diubah</span>
               )}
             </div>
           </div>
 
           {formError && (
-            <div
-              style={{
-                background: "#fee2e2",
-                color: "#dc2626",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
+            <div className="bg-red-100 text-red-600 rounded-lg p-[10px_14px] text-[13px] font-semibold border border-red-200">
               ⚠️ {formError}
             </div>
           )}
 
-          <div className="form-actions">
-            <button className="btn-cancel" onClick={closeForm}>
+          <div className="grid grid-cols-2 gap-2.5 mt-1">
+            <button className="p-3 rounded-xl border border-gray-200 bg-white text-[14px] font-bold text-gray-500 cursor-pointer transition-colors hover:bg-gray-50" onClick={closeForm}>
               Batal
             </button>
-            <button className="btn-save" onClick={handleSave} disabled={saving}>
+            <button className="p-3 rounded-xl border-none bg-[#0f4c81] text-white text-[14px] font-bold cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_12px_rgba(15,76,129,0.2)]" onClick={handleSave} disabled={saving}>
               {saving
                 ? "Menyimpan..."
                 : editTarget
