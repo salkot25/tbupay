@@ -127,6 +127,16 @@ export default function AdminUserManagement() {
 
   const handleSave = async () => {
     setFormError("");
+    if (currentUser?.role !== "admin") {
+      if (!editTarget || editTarget.id_user !== currentUser?.id_user) {
+        setFormError("Akses ditolak: Anda hanya dapat mengubah akun Anda sendiri.");
+        return;
+      }
+      if (form.role !== editTarget?.role) {
+        setFormError("Akses ditolak: Anda tidak dapat mengubah role Anda sendiri.");
+        return;
+      }
+    }
     if (!form.nama.trim() || !form.blok_rumah.trim()) {
       setFormError("Nama dan Blok/Username wajib diisi.");
       return;
@@ -154,18 +164,7 @@ export default function AdminUserManagement() {
     }
   };
 
-  // Guard
-  if (currentUser?.role !== "admin") {
-    return (
-      <div className="px-4 pb-[100px]">
-        <div className="text-center py-12 px-4 text-gray-400 flex flex-col items-center gap-2 text-[13px]">
-          <ShieldCheck size={48} color="#9ca3af" />
-          <p className="font-semibold text-gray-700 text-[14px] m-0">Akses Terbatas</p>
-          <span>Halaman ini hanya untuk Admin.</span>
-        </div>
-      </div>
-    );
-  }
+
 
   const filtered = users.filter(
     (u) =>
@@ -191,9 +190,9 @@ export default function AdminUserManagement() {
       {/* Header */}
       <div className="py-4 pb-3 flex justify-between items-center">
         <div>
-          <h2 className="text-[20px] font-bold text-gray-800 m-0">Manajemen Pengguna</h2>
+          <h2 className="text-[20px] font-bold text-gray-800 m-0">Manajemen Warga</h2>
           <p className="text-[12px] text-gray-400 mt-[2px] m-0">
-            {users.length} pengguna terdaftar
+            {users.length} warga terdaftar
           </p>
         </div>
         <div className="flex gap-2">
@@ -204,10 +203,12 @@ export default function AdminUserManagement() {
           >
             <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
           </button>
-          <button className="flex items-center gap-1.5 bg-[#0f4c81] text-white border-none rounded-[10px] p-[8px_14px] text-[13px] font-bold cursor-pointer transition-opacity hover:opacity-90" onClick={openAdd}>
-            <Plus size={16} />
-            Tambah
-          </button>
+          {currentUser?.role === "admin" && (
+            <button className="flex items-center gap-1.5 bg-[#0f4c81] text-white border-none rounded-[10px] p-[8px_14px] text-[13px] font-bold cursor-pointer transition-opacity hover:opacity-90" onClick={openAdd}>
+              <Plus size={16} />
+              Tambah
+            </button>
+          )}
         </div>
       </div>
 
@@ -246,16 +247,16 @@ export default function AdminUserManagement() {
             size={28}
             className="animate-spin"
           />
-          <span>Memuat data pengguna...</span>
+          <span>Memuat data warga...</span>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 px-4 text-gray-400 flex flex-col items-center gap-2 text-[13px]">
           <Users size={40} color="#d1d5db" />
-          <p className="font-semibold text-gray-700 text-[14px] m-0">Tidak ada pengguna</p>
+          <p className="font-semibold text-gray-700 text-[14px] m-0">Tidak ada warga</p>
           <span>
             {search
               ? "Coba kata kunci lain."
-              : "Belum ada pengguna yang terdaftar."}
+              : "Belum ada warga yang terdaftar."}
           </span>
         </div>
       ) : (
@@ -284,21 +285,25 @@ export default function AdminUserManagement() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <button
-                  className="w-[34px] h-[34px] rounded-lg border-none cursor-pointer flex items-center justify-center transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100"
-                  onClick={() => openEdit(user)}
-                  title="Edit"
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  className="w-[34px] h-[34px] rounded-lg border-none cursor-pointer flex items-center justify-center transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => handleDelete(user)}
-                  title="Hapus"
-                  disabled={user.id_user === currentUser?.id_user}
-                >
-                  <Trash2 size={15} />
-                </button>
+                {(currentUser?.role === "admin" || user.id_user === currentUser?.id_user) && (
+                  <button
+                    className="w-[34px] h-[34px] rounded-lg border-none cursor-pointer flex items-center justify-center transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100"
+                    onClick={() => openEdit(user)}
+                    title="Edit"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                )}
+                {currentUser?.role === "admin" && (
+                  <button
+                    className="w-[34px] h-[34px] rounded-lg border-none cursor-pointer flex items-center justify-center transition-colors bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => handleDelete(user)}
+                    title="Hapus"
+                    disabled={user.id_user === currentUser?.id_user}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -315,7 +320,7 @@ export default function AdminUserManagement() {
         <div className={`w-full max-w-[480px] bg-white rounded-t-3xl p-[24px_20px] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col gap-[14px] max-h-[85vh] overflow-y-auto ${isFormOpen ? "translate-y-0" : "translate-y-full"}`}>
           <div className="flex justify-between items-center">
             <h3 className="text-[18px] font-bold text-gray-800 m-0">
-              {editTarget ? "Edit Pengguna" : "Tambah Pengguna Baru"}
+              {editTarget ? "Edit Warga" : "Tambah Warga Baru"}
             </h3>
             <button
               onClick={closeForm}
@@ -367,20 +372,21 @@ export default function AdminUserManagement() {
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-bold text-gray-500 uppercase">Role</label>
-              <select
-                className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
-                value={form.role}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, role: e.target.value }))
-                }
-              >
-                <option value="warga">Warga</option>
-                <option value="petugas">Petugas</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
+             <div className="flex flex-col gap-1">
+               <label className="text-[11px] font-bold text-gray-500 uppercase">Role</label>
+               <select
+                 className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white disabled:opacity-60"
+                 value={form.role}
+                 onChange={(e) =>
+                   setForm((p) => ({ ...p, role: e.target.value }))
+                 }
+                 disabled={currentUser?.role !== "admin"}
+               >
+                 <option value="warga">Warga</option>
+                 <option value="petugas">Petugas</option>
+                 <option value="admin">Admin</option>
+               </select>
+             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-bold text-gray-500 uppercase">Password</label>
               <input
@@ -415,7 +421,7 @@ export default function AdminUserManagement() {
                 ? "Menyimpan..."
                 : editTarget
                   ? "Simpan Perubahan"
-                  : "Tambah Pengguna"}
+                  : "Tambah Warga"}
             </button>
           </div>
         </div>

@@ -55,13 +55,45 @@ const parseDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const getPeriodTitle = (filter) => {
+  const now = new Date();
+  if (filter === "hariini") {
+    return `Hari Ini, ${now.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })}`;
+  }
+  if (filter === "mingguan") {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 6);
+    const startLabel = start.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+    });
+    const endLabel = now.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+    return `${startLabel} - ${endLabel}`;
+  }
+  if (filter === "bulanan") {
+    return now.toLocaleDateString("id-ID", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+  return `Tahun ${now.getFullYear()}`;
+};
+
 export default function Cashflow() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dataSource, setDataSource] = useState("network");
-  const [selectedYear, setSelectedYear] = useState("");
-  const [selectedMonthKey, setSelectedMonthKey] = useState("");
+  const [filter, setFilter] = useState("semua");
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   const fetchTransactions = async (forceRefresh = false) => {
     if (forceRefresh) setRefreshing(true);
@@ -104,121 +136,283 @@ export default function Cashflow() {
     [transactions],
   );
 
-  const totalSaldo = useMemo(
-    () =>
-      verifiedTransactions.reduce((acc, trx) => {
-        const nominal = Number(trx.nominal) || 0;
-        if (trx.jenis === "pemasukan") return acc + nominal;
-        if (trx.jenis === "pengeluaran") return acc - nominal;
-        return acc;
-      }, 0),
-    [verifiedTransactions],
-  );
+  const {
+    totalMasuk,
+    totalKeluar,
+    pengeluaranPerPos,
+    barData,
+    periodTitle,
+    masukChange,
+    keluarChange,
+    netChange,
+    labelPeriodText,
+  } = useMemo(() => {
+    let masuk = 0;
+    let keluar = 0;
+    let pMasuk = 0;
+    let pKeluar = 0;
+    const posMap = {};
 
-  const yearOptions = useMemo(() => {
-    const uniqueYears = new Set();
-    verifiedTransactions.forEach((trx) => {
-      const date = parseDate(trx.timestamp);
-      if (date) uniqueYears.add(String(date.getFullYear()));
-    });
-    const years = Array.from(uniqueYears).sort((a, b) => Number(b) - Number(a));
-    if (years.length === 0) years.push(String(new Date().getFullYear()));
-    return years;
-  }, [verifiedTransactions]);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const currentDate = now.getDate();
 
-  useEffect(() => {
-    if (!yearOptions.includes(selectedYear)) {
-      setSelectedYear(yearOptions[0]);
+    let currentStart, currentEnd;
+    let prevStart, prevEnd;
+    let periodLabel = "";
+
+    if (filter === "hariini") {
+      currentStart = new Date(currentYear, currentMonth, currentDate, 0, 0, 0, 0);
+      currentEnd = new Date(currentYear, currentMonth, currentDate, 23, 59, 59, 999);
+
+      prevStart = new Date(currentYear, currentMonth, currentDate - 1, 0, 0, 0, 0);
+      prevEnd = new Date(currentYear, currentMonth, currentDate - 1, 23, 59, 59, 999);
+      periodLabel = "kemarin";
+    } else if (filter === "mingguan") {
+      currentStart = new Date(now);
+      currentStart.setDate(now.getDate() - 6);
+      currentStart.setHours(0, 0, 0, 0);
+      currentEnd = new Date(currentYear, currentMonth, currentDate, 23, 59, 59, 999);
+
+      prevStart = new Date(now);
+      prevStart.setDate(now.getDate() - 13);
+      prevStart.setHours(0, 0, 0, 0);
+      prevEnd = new Date(now);
+      prevEnd.setDate(now.getDate() - 7);
+      prevEnd.setHours(23, 59, 59, 999);
+      periodLabel = "mgg lalu";
+    } else if (filter === "bulanan") {
+      currentStart = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
+      currentEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+
+      prevStart = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0, 0);
+      prevEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+      periodLabel = "bln lalu";
+    } else {
+      currentStart = new Date(currentYear, 0, 1, 0, 0, 0, 0);
+      currentEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+
+      prevStart = new Date(currentYear - 1, 0, 1, 0, 0, 0, 0);
+      prevEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59, 999);
+      periodLabel = "thn lalu";
     }
-  }, [yearOptions, selectedYear]);
 
-  const monthOptions = useMemo(() => {
-    const uniqueMonthKeys = new Set();
     verifiedTransactions.forEach((trx) => {
-      if (trx.jenis !== "pengeluaran") return;
       const date = parseDate(trx.timestamp);
       if (!date) return;
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      uniqueMonthKeys.add(key);
+      const nominal = Number(trx.nominal) || 0;
+
+      if (date >= currentStart && date <= currentEnd) {
+        if (trx.jenis === "pemasukan") {
+          masuk += nominal;
+        } else if (trx.jenis === "pengeluaran") {
+          keluar += nominal;
+          const pos = String(trx.keterangan || "Lainnya").trim() || "Lainnya";
+          posMap[pos] = (posMap[pos] || 0) + nominal;
+        }
+      }
+
+      if (date >= prevStart && date <= prevEnd) {
+        if (trx.jenis === "pemasukan") {
+          pMasuk += nominal;
+        } else if (trx.jenis === "pengeluaran") {
+          pKeluar += nominal;
+        }
+      }
     });
 
-    const months = Array.from(uniqueMonthKeys)
-      .sort((a, b) => (a < b ? 1 : -1))
-      .map((key) => {
-        const [year, month] = key.split("-");
-        const monthIndex = Number(month) - 1;
-        return { key, label: `${MONTH_LABELS[monthIndex]} ${year}` };
-      });
+    const calcPctChange = (curr, prev) => {
+      if (prev === 0) return curr > 0 ? 100 : 0;
+      return ((curr - prev) / prev) * 100;
+    };
 
-    if (months.length === 0) {
-      const now = new Date();
-      const fallbackKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      months.push({
-        key: fallbackKey,
-        label: `${MONTH_LABELS[now.getMonth()]} ${now.getFullYear()}`,
-      });
+    const changeMasuk = calcPctChange(masuk, pMasuk);
+    const changeKeluar = calcPctChange(keluar, pKeluar);
+    const net = masuk - keluar;
+
+    let labels = [];
+    const barDataMap = {};
+
+    if (filter === "hariini") {
+      labels = ["Hari Ini"];
+    } else if (filter === "mingguan") {
+      labels = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+    } else if (filter === "bulanan") {
+      labels = ["Mg 1", "Mg 2", "Mg 3", "Mg 4", "Mg 5"];
+    } else {
+      labels = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "Mei",
+        "Jun",
+        "Jul",
+        "Agu",
+        "Sep",
+        "Okt",
+        "Nov",
+        "Des",
+      ];
     }
 
-    return months;
-  }, [verifiedTransactions]);
+    labels.forEach((l) => (barDataMap[l] = { m: 0, k: 0 }));
 
-  useEffect(() => {
-    if (!monthOptions.find((m) => m.key === selectedMonthKey)) {
-      setSelectedMonthKey(monthOptions[0]?.key || "");
-    }
-  }, [monthOptions, selectedMonthKey]);
-
-  const barData = useMemo(() => {
-    const pemasukanByMonth = Array(12).fill(0);
-    const pengeluaranByMonth = Array(12).fill(0);
-    const yearNum = Number(selectedYear);
+    const days = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "Mei",
+      "Jun",
+      "Jul",
+      "Agu",
+      "Sep",
+      "Okt",
+      "Nov",
+      "Des",
+    ];
 
     verifiedTransactions.forEach((trx) => {
       const date = parseDate(trx.timestamp);
-      if (!date || date.getFullYear() !== yearNum) return;
-      const month = date.getMonth();
+      if (!date) return;
       const nominal = Number(trx.nominal) || 0;
-      if (trx.jenis === "pemasukan") pemasukanByMonth[month] += nominal;
-      if (trx.jenis === "pengeluaran") pengeluaranByMonth[month] += nominal;
+
+      if (date >= currentStart && date <= currentEnd) {
+        let binLabel = "";
+        if (filter === "hariini") {
+          binLabel = "Hari Ini";
+        } else if (filter === "mingguan") {
+          binLabel = days[date.getDay()];
+        } else if (filter === "bulanan") {
+          const dateNum = date.getDate();
+          if (dateNum <= 7) binLabel = "Mg 1";
+          else if (dateNum <= 14) binLabel = "Mg 2";
+          else if (dateNum <= 21) binLabel = "Mg 3";
+          else if (dateNum <= 28) binLabel = "Mg 4";
+          else binLabel = "Mg 5";
+        } else {
+          binLabel = months[date.getMonth()];
+        }
+
+        if (trx.jenis === "pemasukan") {
+          if (barDataMap[binLabel]) barDataMap[binLabel].m += nominal;
+        } else if (trx.jenis === "pengeluaran") {
+          if (barDataMap[binLabel]) barDataMap[binLabel].k += nominal;
+        }
+      }
     });
 
-    return {
-      labels: MONTH_LABELS,
+    const computedBarData = {
+      labels,
       datasets: [
         {
           label: "Pemasukan",
-          data: pemasukanByMonth.map((v) => Number((v / 1000000).toFixed(2))),
-          backgroundColor: "#22c55e",
-          borderRadius: 4,
+          data: labels.map((l) => barDataMap[l].m),
+          backgroundColor: "#10b981",
+          borderRadius: 6,
           barPercentage: 0.6,
         },
         {
           label: "Pengeluaran",
-          data: pengeluaranByMonth.map((v) => Number((v / 1000000).toFixed(2))),
+          data: labels.map((l) => barDataMap[l].k),
           backgroundColor: "#ef4444",
-          borderRadius: 4,
+          borderRadius: 6,
           barPercentage: 0.6,
         },
       ],
     };
-  }, [verifiedTransactions, selectedYear]);
+
+    const sortedPos = Object.entries(posMap).sort((a, b) => b[1] - a[1]);
+
+    return {
+      totalMasuk: masuk,
+      totalKeluar: keluar,
+      pengeluaranPerPos: sortedPos,
+      barData: computedBarData,
+      periodTitle: getPeriodTitle(filter),
+      masukChange: changeMasuk,
+      keluarChange: changeKeluar,
+      netChange: net,
+      labelPeriodText: periodLabel,
+    };
+  }, [verifiedTransactions, filter]);
+
+  const globalTotalSaldo = useMemo(() => {
+    return verifiedTransactions.reduce((acc, trx) => {
+      const nominal = Number(trx.nominal) || 0;
+      if (trx.jenis === "pemasukan") return acc + nominal;
+      if (trx.jenis === "pengeluaran") return acc - nominal;
+      return acc;
+    }, 0);
+  }, [verifiedTransactions]);
+
+  const formatRupiah = (number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(number);
+  };
+
+  const formatYAxis = (value) => {
+    if (value >= 1000000) return (value / 1000000).toFixed(1).replace(/\.0$/, "") + "Jt";
+    if (value >= 1000) return (value / 1000).toFixed(0) + "Rb";
+    return value;
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top",
+        align: "end",
+        labels: {
+          usePointStyle: true,
+          boxWidth: 6,
+          font: { size: 10, weight: "bold" },
+        },
+      },
+      tooltip: {
+        backgroundColor: "#1f2937",
+        titleFont: { size: 11, weight: "bold" },
+        bodyFont: { size: 11 },
+        padding: 10,
+        cornerRadius: 8,
+        callbacks: {
+          label: function (context) {
+            return ` ${context.dataset.label}: ${formatRupiah(context.raw)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: formatYAxis,
+          font: { size: 9, weight: "medium" },
+          color: "#9ca3af",
+        },
+        grid: { color: "#f3f4f6", drawTicks: false },
+        border: { display: false },
+      },
+      x: {
+        grid: { display: false },
+        ticks: {
+          font: { size: 9, weight: "medium" },
+          color: "#9ca3af",
+        },
+        border: { display: false },
+      },
+    },
+  };
 
   const doughnutData = useMemo(() => {
-    const perCategory = {};
-    verifiedTransactions.forEach((trx) => {
-      if (trx.jenis !== "pengeluaran") return;
-      const date = parseDate(trx.timestamp);
-      if (!date) return;
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      if (key !== selectedMonthKey) return;
-
-      const nominal = Number(trx.nominal) || 0;
-      const kategori = String(trx.keterangan || "Lainnya").trim() || "Lainnya";
-      perCategory[kategori] = (perCategory[kategori] || 0) + nominal;
-    });
-
-    const entries = Object.entries(perCategory).sort((a, b) => b[1] - a[1]);
-    if (entries.length === 0) {
+    if (pengeluaranPerPos.length === 0) {
       return {
         labels: ["Belum ada data"],
         datasets: [
@@ -232,81 +426,57 @@ export default function Cashflow() {
       };
     }
 
+    const colors = [
+      "#3b82f6",
+      "#10b981",
+      "#f59e0b",
+      "#8b5cf6",
+      "#ef4444",
+      "#14b8a6",
+      "#f97316",
+      "#94a3b8",
+    ];
+
     return {
-      labels: entries.map(([name]) => name),
+      labels: pengeluaranPerPos.map(([kategori]) => kategori),
       datasets: [
         {
-          data: entries.map(([, value]) => value),
-          backgroundColor: entries.map(
-            (_, idx) => DOUGHNUT_COLORS[idx % DOUGHNUT_COLORS.length],
-          ),
+          data: pengeluaranPerPos.map(([, nominal]) => nominal),
+          backgroundColor: pengeluaranPerPos.map((_, idx) => colors[idx % colors.length]),
           borderWidth: 0,
           hoverOffset: 4,
         },
       ],
     };
-  }, [verifiedTransactions, selectedMonthKey]);
+  }, [pengeluaranPerPos]);
 
-  const formatRupiah = (number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(number);
-  };
-
-  // Bar chart options
-  const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: function (context) {
-            return context.dataset.label + ": Rp " + context.raw + " Juta";
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function (value) {
-            return value + "jt";
-          },
-          font: { size: 10 },
-        },
-        grid: { color: "#f3f4f6", drawBorder: false },
-      },
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 10 } },
-      },
-    },
-  };
-
-  // Doughnut chart options
   const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
     cutout: "70%",
     plugins: {
+      legend: {
+        display: false,
+      },
       tooltip: {
+        backgroundColor: "#1f2937",
+        titleFont: { size: 11, weight: "bold" },
+        bodyFont: { size: 11 },
+        padding: 10,
+        cornerRadius: 8,
         callbacks: {
           label: function (context) {
             const raw = Number(context.raw) || 0;
-            return `${context.label}: ${formatRupiah(raw)}`;
+            return ` ${context.label}: ${formatRupiah(raw)}`;
           },
         },
       },
-      legend: {
-        position: "right",
-        labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } },
-      },
     },
   };
+
+  const displayedTransactions = showAllTransactions
+    ? transactions
+    : transactions.slice(0, 10);
 
   return (
     <div className="pb-6 animate-[fadeIn_0.3s_ease-in-out]" {...pull.bind}>
@@ -316,100 +486,229 @@ export default function Cashflow() {
         </div>
       )}
       <CacheFallbackBadge source={dataSource} />
-      <div className="py-4 mb-2">
-        <h2 className="text-xl font-bold text-gray-800 m-0">Laporan Keuangan</h2>
+      
+      <div className="py-4">
+        <h2 className="text-xl font-extrabold text-gray-900 m-0">Laporan Keuangan</h2>
+        <p className="text-xs text-gray-500 mt-1">Pantau dan kelola arus kas warga secara real-time</p>
       </div>
 
-      <h3 className="font-bold text-gray-700 mb-4 text-[14px]">Ringkasan Kas RT</h3>
+      {/* Periode Tab Switcher (Laporan.jsx style) */}
+      <div className="p-1 rounded-xl flex gap-1 bg-gray-200/60 mb-6">
+        {["Hari Ini", "Mingguan", "Bulanan", "Semua"].map((f) => {
+          const key = f.toLowerCase().replace(" ", "");
+          const isSelected = filter === key;
+          return (
+            <button
+              key={f}
+              onClick={() => {
+                setFilter(key);
+                setShowAllTransactions(false);
+              }}
+              className={`flex-1 text-xs py-2 transition-all duration-200 ${
+                isSelected
+                  ? "font-extrabold rounded-lg shadow-sm bg-white text-gray-900"
+                  : "font-medium text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              {f}
+            </button>
+          );
+        })}
+      </div>
 
-      <div className="bg-white p-5 rounded-2xl shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] border border-gray-100 mb-4">
-        <div className="flex justify-between items-start">
+      {/* Ringkasan Keuangan RT */}
+      <div
+        className="relative overflow-hidden text-white p-5 rounded-2xl border border-transparent shadow-md mb-4"
+        style={{
+          background: "linear-gradient(145deg, #0a3460 0%, #0f4c81 50%, #1565a8 100%)",
+        }}
+      >
+        {/* Background Icon (like home card carousel) */}
+        <TrendingUp className="absolute -right-6 -bottom-6 w-44 h-44 text-white opacity-[0.07] pointer-events-none rotate-[-10deg]" />
+
+        <div className="relative z-10 flex justify-between items-start">
           <div>
-            <p className="text-gray-400 text-[12px] m-0">Total Saldo Tersedia</p>
-            <p className="text-2xl font-bold text-green-600 mt-1 mb-0">{formatRupiah(totalSaldo)}</p>
+            <p className="text-white/60 text-xs font-semibold uppercase tracking-wider m-0">Total Saldo Tersedia</p>
+            <p className="text-3xl font-extrabold text-white mt-2 mb-0 tracking-tight">{formatRupiah(globalTotalSaldo)}</p>
           </div>
-          <div className="p-2 bg-green-50 text-green-600 rounded-lg">
-            <TrendingUp size={20} />
+          <span className="text-[10px] font-extrabold text-indigo-200 bg-white/10 border border-white/10 px-2.5 py-0.5 rounded-full capitalize shrink-0">
+            {periodTitle}
+          </span>
+        </div>
+
+        {/* Insight Saldo */}
+        <div className="relative z-10 mt-4 pt-4 border-t border-white/10 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-white/60 uppercase">Status Arus Kas</span>
+            {netChange > 0 ? (
+              <span className="text-[11px] font-extrabold text-white bg-emerald-500/80 px-2.5 py-0.5 rounded-full shadow-sm">
+                Surplus
+              </span>
+            ) : netChange < 0 ? (
+              <span className="text-[11px] font-extrabold text-white bg-rose-500/80 px-2.5 py-0.5 rounded-full shadow-sm">
+                Defisit
+              </span>
+            ) : (
+              <span className="text-[11px] font-extrabold text-white bg-amber-500/80 px-2.5 py-0.5 rounded-full shadow-sm">
+                Stabil
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] font-medium text-white/80 m-0 leading-relaxed">
+            {netChange > 0 ? (
+              <>
+                Arus kas mengalami surplus sebesar{" "}
+                <span className="font-extrabold text-emerald-300">{formatRupiah(netChange)}</span> pada periode ini.
+              </>
+            ) : netChange < 0 ? (
+              <>
+                Arus kas mengalami defisit sebesar{" "}
+                <span className="font-extrabold text-rose-300">{formatRupiah(Math.abs(netChange))}</span> pada periode ini.
+              </>
+            ) : (
+              <>Tidak ada penambahan atau pengurangan saldo yang tercatat pada periode ini.</>
+            )}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {/* Pemasukan Card */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
+                <ArrowDownLeft size={16} />
+              </div>
+              <span className="text-[11px] font-bold text-gray-400 uppercase">Pemasukan</span>
+            </div>
+            <p className="text-base font-extrabold text-emerald-600 truncate m-0">{formatRupiah(totalMasuk)}</p>
+          </div>
+          <div className="mt-3 pt-2 border-t border-dashed border-gray-100 text-[10px] font-bold flex items-center gap-1">
+            {masukChange > 0 ? (
+              <span className="text-emerald-600">▲ {masukChange.toFixed(0)}%</span>
+            ) : masukChange < 0 ? (
+              <span className="text-rose-500">▼ {Math.abs(masukChange).toFixed(0)}%</span>
+            ) : (
+              <span className="text-gray-400">0%</span>
+            )}
+            <span className="text-gray-400 font-medium">vs {labelPeriodText}</span>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-dashed border-gray-200 flex justify-between text-center">
+
+        {/* Pengeluaran Card */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
           <div>
-            <p className="text-[10px] text-gray-400 uppercase m-0">Status Data</p>
-            <p className="text-[14px] font-bold text-gray-700 m-0">Terhubung Server</p>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg shrink-0">
+                <ArrowUpRight size={16} />
+              </div>
+              <span className="text-[11px] font-bold text-gray-400 uppercase">Pengeluaran</span>
+            </div>
+            <p className="text-base font-extrabold text-rose-600 truncate m-0">{formatRupiah(totalKeluar)}</p>
+          </div>
+          <div className="mt-3 pt-2 border-t border-dashed border-gray-100 text-[10px] font-bold flex items-center gap-1">
+            {keluarChange > 0 ? (
+              <span className="text-rose-500">▲ {keluarChange.toFixed(0)}%</span>
+            ) : keluarChange < 0 ? (
+              <span className="text-emerald-600">▼ {Math.abs(keluarChange).toFixed(0)}%</span>
+            ) : (
+              <span className="text-gray-400">0%</span>
+            )}
+            <span className="text-gray-400 font-medium">vs {labelPeriodText}</span>
           </div>
         </div>
       </div>
 
       {/* Grafik Arus Kas */}
-      <div className="bg-white p-4 rounded-2xl shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] border border-gray-100 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-gray-700 text-[14px] m-0">Grafik Arus Kas</h3>
-          <select
-            className="text-[12px] font-medium bg-gray-50 border border-gray-200 rounded-lg p-1.5 outline-none focus:border-blue-500"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-          >
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>
-                Tahun {year}
-              </option>
-            ))}
-          </select>
+      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mb-6">
+        <div className="flex justify-between items-center mb-4 gap-2">
+          <h3 className="font-bold text-gray-800 text-[15px] m-0 shrink-0">Grafik Arus Kas</h3>
+          <span className="text-[11px] font-extrabold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full capitalize truncate">
+            {periodTitle}
+          </span>
         </div>
-        <div className="relative h-48 w-full">
+        <div className="relative h-56 w-full">
           {barData && <Bar data={barData} options={barOptions} />}
         </div>
-        <div className="flex justify-center gap-4 mt-3 text-[10px] font-medium text-gray-500">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-green-500"></div>Pemasukan
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-red-500"></div>Pengeluaran
-          </div>
-        </div>
       </div>
 
-      {/* Grafik Kategori Pengeluaran */}
-      <div className="bg-white p-4 rounded-2xl shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] border border-gray-100 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-gray-700 text-[14px] m-0">Kategori Pengeluaran</h3>
-          <select
-            className="text-[12px] font-medium bg-gray-50 border border-gray-200 rounded-lg p-1.5 outline-none focus:border-blue-500"
-            value={selectedMonthKey}
-            onChange={(e) => setSelectedMonthKey(e.target.value)}
-          >
-            {monthOptions.map((month) => (
-              <option key={month.key} value={month.key}>
-                {month.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="relative h-40 w-full flex justify-center">
-          {doughnutData && (
-            <Doughnut data={doughnutData} options={doughnutOptions} />
-          )}
-        </div>
+      {/* Kategori Pengeluaran */}
+      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mb-6">
+        <h3 className="font-bold text-gray-800 text-[15px] mb-4">Pengeluaran Per Kategori</h3>
+        {pengeluaranPerPos.length === 0 ? (
+          <p className="text-gray-400 text-xs text-center py-8">Belum ada pengeluaran pada periode ini</p>
+        ) : (
+          <div className="flex items-center gap-6">
+            {/* Chart Container */}
+            <div className="relative h-44 w-[45%] shrink-0">
+              <Doughnut data={doughnutData} options={doughnutOptions} />
+            </div>
+
+            {/* Custom Legend Labels */}
+            <div className="flex-1 min-w-0 space-y-2.5">
+              {pengeluaranPerPos.slice(0, 5).map(([kategori, nominal], index) => {
+                const totalPeriod = pengeluaranPerPos.reduce((sum, [, val]) => sum + val, 0) || 1;
+                const percentage = Math.round((nominal / totalPeriod) * 100);
+                const colors = [
+                  "#3b82f6",
+                  "#10b981",
+                  "#f59e0b",
+                  "#8b5cf6",
+                  "#ef4444",
+                  "#14b8a6",
+                  "#f97316",
+                  "#94a3b8",
+                ];
+                const dotColor = colors[index % colors.length];
+
+                return (
+                  <div key={kategori} className="flex items-start gap-2 min-w-0">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0 mt-1"
+                      style={{ backgroundColor: dotColor }}
+                    />
+                    <div className="min-w-0 flex-1 leading-none">
+                      <p className="text-xs font-bold text-gray-700 truncate m-0">
+                        {kategori}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-semibold mt-0.5 m-0">
+                        {percentage}% • {formatRupiah(nominal)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {pengeluaranPerPos.length > 5 && (
+                <p className="text-[10px] text-gray-400 italic pl-5 m-0">
+                  + {pengeluaranPerPos.length - 5} kategori lainnya
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      <h3 className="font-bold text-gray-700 mb-4 text-[14px]">Alokasi Dana Terakhir</h3>
+      {/* Riwayat Transaksi Terakhir */}
+      <h3 className="font-bold text-gray-800 mb-4 text-[15px]">Riwayat Transaksi Terakhir</h3>
       <div className="flex flex-col gap-3">
-        {loading && <div className="p-4 text-center text-[12px] text-gray-400">Memuat mutasi kas...</div>}
+        {loading && <div className="p-4 text-center text-xs text-gray-400">Memuat transaksi...</div>}
         {!loading && transactions.length === 0 && (
-          <div className="p-4 text-center text-[12px] text-gray-400">Belum ada transaksi kas.</div>
+          <div className="p-4 text-center text-xs text-gray-400">Belum ada transaksi.</div>
         )}
 
         {!loading &&
-          transactions.slice(0, 5).map((trx) => {
+          displayedTransactions.map((trx) => {
             const isPemasukan = trx.jenis === "pemasukan";
+            const isVerified = String(trx.status).toLowerCase() === "verified";
             return (
               <div
                 key={trx.id_transaksi || Math.random()}
-                className="bg-white p-4 rounded-xl flex items-center justify-between border border-gray-100 shadow-sm"
+                className="bg-white p-4 rounded-xl flex items-center justify-between border border-gray-100 shadow-sm relative overflow-hidden"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`p-2 rounded-lg shrink-0 ${isPemasukan ? "bg-green-100 text-green-600" : "bg-red-100 text-red-500"}`}
+                    className={`p-2 rounded-lg shrink-0 ${isPemasukan ? "bg-green-50 text-green-600" : "bg-rose-50 text-rose-500"}`}
                   >
                     {isPemasukan ? (
                       <ArrowDownLeft size={20} />
@@ -418,8 +717,15 @@ export default function Cashflow() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[14px] font-bold text-gray-800 m-0 truncate">{trx.keterangan}</p>
-                    <p className="text-[10px] text-gray-400 m-0 mt-0.5">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14px] font-bold text-gray-800 m-0 truncate">{trx.keterangan || "Tanpa Keterangan"}</p>
+                      {!isVerified && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 uppercase tracking-wide">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400 m-0 mt-1">
                       {new Date(trx.timestamp).toLocaleDateString("id-ID", {
                         day: "2-digit",
                         month: "short",
@@ -429,13 +735,22 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p
-                  className={`text-[14px] font-bold tabular-nums shrink-0 m-0 ${isPemasukan ? "text-green-600" : "text-red-500"}`}
+                  className={`text-[14px] font-bold tabular-nums shrink-0 m-0 ${isPemasukan ? "text-green-600" : "text-rose-500"}`}
                 >
                   {isPemasukan ? "+" : "-"} {formatRupiah(trx.nominal)}
                 </p>
               </div>
             );
           })}
+
+        {!loading && transactions.length > 10 && (
+          <button
+            onClick={() => setShowAllTransactions(!showAllTransactions)}
+            className="mt-2 w-full py-3 bg-gray-50 border border-gray-100 text-xs font-extrabold text-blue-600 hover:text-blue-800 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-1 active:scale-95"
+          >
+            {showAllTransactions ? "Sembunyikan" : "Lihat Semua"}
+          </button>
+        )}
       </div>
     </div>
   );

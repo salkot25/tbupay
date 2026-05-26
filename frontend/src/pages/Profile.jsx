@@ -18,7 +18,7 @@ export default function Profile() {
   return (
     <div className="flex flex-col">
       <div className="mb-4">
-        <h2 className="text-xl font-bold m-0">Profil Pengguna</h2>
+        <h2 className="text-xl font-bold m-0">Profil Warga</h2>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center mt-4 shadow-sm">

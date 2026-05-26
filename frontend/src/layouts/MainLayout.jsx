@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Home, PieChart, LayoutGrid, User, Plus } from "lucide-react";
+import { LayoutDashboard, PieChart, MessageSquare, User, Plus } from "lucide-react";
 import useStore from "../store/useStore";
 import PaymentModal from "../components/PaymentModal";
 import {
@@ -19,7 +19,7 @@ export default function MainLayout() {
     {
       id: "home",
       path: "/",
-      icon: Home,
+      icon: LayoutDashboard,
       label: "Beranda",
       roles: ["warga", "petugas", "admin"],
     },
@@ -33,7 +33,7 @@ export default function MainLayout() {
     {
       id: "service",
       path: "/service",
-      icon: LayoutGrid,
+      icon: MessageSquare,
       label: "Layanan",
       roles: ["warga", "petugas", "admin"],
     },
@@ -92,32 +92,36 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-surface border-t border-border flex justify-around pt-2 pb-4 z-50">
+      <nav className="bg-white border-t border-gray-100 h-20 flex justify-around items-center fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-50 px-2 pb-2">
         {leftNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           return (
             <button
               key={item.id}
-              className={`flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer py-2 px-3 transition-colors flex-1 ${isActive ? "text-primary" : "text-text-secondary hover:text-primary"}`}
+              className={`flex flex-col items-center justify-center w-full transition-colors ${isActive ? "text-blue-600" : "text-gray-400"}`}
               onMouseEnter={() => handleNavIntent(item.id)}
               onTouchStart={() => handleNavIntent(item.id)}
               onClick={() => navigate(item.path)}
             >
-              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[11px] font-medium leading-[1.4]">{item.label}</span>
+              <Icon className="w-6 h-6" strokeWidth={2} />
+              <span 
+                className={`text-[10px] mt-1 ${isActive ? "font-semibold" : "font-medium"}`}
+              >
+                {item.label}
+              </span>
             </button>
           );
         })}
 
         {/* FAB in Center */}
         {user?.role !== "petugas" && (
-          <div className="flex justify-center items-start flex-1 pt-0">
+          <div className="flex justify-center w-full">
             <button
-              className="relative -top-5 bg-primary border-4 border-surface shadow-[0_4px_10px_rgba(0,0,0,0.1)] w-14 h-14 rounded-full flex items-center justify-center text-white cursor-pointer transition-colors shrink-0 active:bg-[#1e40af]"
+              className="relative -top-5 bg-blue-600 border-4 border-white shadow-[0_4px_10px_rgba(0,0,0,0.1)] w-14 h-14 rounded-full flex items-center justify-center text-white active:bg-blue-800 transition"
               onClick={() => setIsPaymentModalOpen(true)}
             >
-              <Plus size={32} />
+              <Plus className="w-8 h-8" strokeWidth={2} />
             </button>
           </div>
         )}
@@ -128,13 +132,17 @@ export default function MainLayout() {
           return (
             <button
               key={item.id}
-              className={`flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer py-2 px-3 transition-colors flex-1 ${isActive ? "text-primary" : "text-text-secondary hover:text-primary"}`}
+              className={`flex flex-col items-center justify-center w-full transition-colors ${isActive ? "text-blue-600" : "text-gray-400"}`}
               onMouseEnter={() => handleNavIntent(item.id)}
               onTouchStart={() => handleNavIntent(item.id)}
               onClick={() => navigate(item.path)}
             >
-              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[11px] font-medium leading-[1.4]">{item.label}</span>
+              <Icon className="w-6 h-6" strokeWidth={2} />
+              <span 
+                className={`text-[10px] mt-1 ${isActive ? "font-semibold" : "font-medium"}`}
+              >
+                {item.label}
+              </span>
             </button>
           );
         })}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import useStore from "../store/useStore";
 import {
@@ -9,30 +9,518 @@ import {
   ClipboardCheck,
   ChevronRight,
   Users,
+  Newspaper,
+  CalendarDays,
+  X,
+  ArrowRight,
+  ArrowUpRight,
+  ArrowDownRight,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Megaphone,
+  MessageSquareWarning,
+  Landmark,
 } from "lucide-react";
 import { getTransactions } from "../application/use-cases/transactions/transactionUseCases";
+import { getNews } from "../application/use-cases/news/newsUseCases";
+import { getUsers } from "../application/use-cases/users/userUseCases";
+import { getTickets } from "../application/use-cases/tickets/ticketUseCases";
 import NotificationModal from "../components/NotificationModal";
 import CacheFallbackBadge from "../components/CacheFallbackBadge";
 import usePullToRefresh from "../hooks/usePullToRefresh";
 
+// ── News Detail Bottom Sheet ───────────────────────────────────────────────
+function NewsDetailSheet({ news, onClose }) {
+  const isOpen = !!news;
+
+  // Lock body scroll when open
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen, onClose]);
+
+  const formatDate = (str) => {
+    if (!str) return "";
+    return new Date(str).toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 z-[200] flex justify-center items-end transition-all duration-300 ${
+        isOpen ? "bg-black/50 pointer-events-auto" : "bg-transparent pointer-events-none"
+      }`}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className={`w-full max-w-[480px] bg-white rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.18)] flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          isOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ maxHeight: "85dvh" }}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Drag handle */}
+        <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mt-3 mb-0 shrink-0" />
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 text-[#0f4c81]">
+              <Newspaper size={16} />
+            </div>
+            <span className="text-[11px] font-bold text-[#0f4c81] uppercase tracking-wider">
+              Berita Perumahan
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border-none cursor-pointer text-gray-500 hover:bg-gray-200 transition-colors shrink-0"
+            aria-label="Tutup"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-5 py-4 flex flex-col gap-3">
+          {/* Date */}
+          <div className="flex items-center gap-1.5 text-gray-400">
+            <CalendarDays size={13} />
+            <span className="text-[12px] font-medium">{formatDate(news?.tanggal)}</span>
+          </div>
+
+          {/* Title */}
+          <h2 className="text-gray-900 font-bold leading-snug m-0" style={{ fontSize: "18px" }}>
+            {news?.judul}
+          </h2>
+
+          {/* Content */}
+          <p className="text-gray-600 text-[14px] leading-relaxed m-0 whitespace-pre-line pb-8">
+            {news?.konten}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── All Transactions Bottom Sheet ───────────────────────────────────────────
+function AllTransactionsSheet({ transactions, isOpen, onClose, formatRupiah }) {
+  // Lock body scroll when open
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen, onClose]);
+
+  return (
+    <div
+      className={`fixed inset-0 z-[200] flex justify-center items-end transition-all duration-300 ${
+        isOpen ? "bg-black/50 pointer-events-auto" : "bg-transparent pointer-events-none"
+      }`}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className={`w-full max-w-[480px] bg-white rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.18)] flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          isOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ maxHeight: "85dvh", height: "85dvh" }}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Drag handle */}
+        <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mt-3 mb-0 shrink-0" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 shrink-0">
+          <h3 className="text-[16px] font-bold text-gray-800 m-0">Semua Riwayat Transaksi</h3>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border-none cursor-pointer text-gray-500 hover:bg-gray-200 transition-colors shrink-0"
+            aria-label="Tutup"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-0 py-0 flex flex-col pb-8 flex-1">
+          {transactions.length > 0 ? (
+            transactions.map((trx, index) => {
+              const isPemasukan = trx.jenis === "pemasukan";
+              const statusLabel =
+                trx.status === "verified"
+                  ? "Terverifikasi"
+                  : trx.status === "pending"
+                    ? "Menunggu Verifikasi"
+                    : "Ditolak";
+
+              return (
+                <div key={trx.id_transaksi} className={`flex items-center justify-between gap-2.5 p-4 ${index !== transactions.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-slate-50 transition-colors`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isPemasukan ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
+                      {isPemasukan ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-bold text-gray-800 leading-snug m-0 truncate">
+                        {trx.keterangan || "-"}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-gray-400 flex items-center gap-1.5 m-0">
+                        {new Date(trx.timestamp).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                        <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-tight ${
+                          trx.status === "verified" ? "bg-green-100 text-green-800" :
+                          trx.status === "pending" ? "bg-amber-100 text-amber-800" :
+                          "bg-red-100 text-red-800"
+                        }`}>
+                          {statusLabel}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <p className={`text-sm font-bold shrink-0 tabular-nums m-0 ${isPemasukan ? "text-green-500" : "text-red-500"}`}>
+                    {isPemasukan ? "+" : "-"}{" "}
+                    {formatRupiah(Number(trx.nominal) || 0)}
+                  </p>
+                </div>
+              );
+            })
+          ) : (
+            <div className="py-12 px-6 text-center">
+              <p className="text-sm font-normal text-gray-500 m-0">
+                Belum ada riwayat transaksi.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const NEWS_GRADIENTS = [
+  "linear-gradient(135deg, #0f303f 0%, #0d5450 55%, #148f77 100%)", // Deep Ocean Teal
+  "linear-gradient(135deg, #2b1b54 0%, #3e1b73 55%, #5a2e9c 100%)", // Deep Indigo Purple
+  "linear-gradient(135deg, #421623 0%, #631e34 55%, #8a2e4a 100%)", // Deep Crimson Rose
+];
+
+// ── Swipeable Hero Carousel ────────────────────────────────────────────────
+function HeroCarousel({ totalKas, totalPemasukan, totalPengeluaran, latestNews, loading, formatRupiah, statusIuran, onOpenNews }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const isDragging = useRef(false);
+  const containerRef = useRef(null);
+
+  // Build slides: first = kas card, then up to 3 news cards
+  const newsSlides = latestNews.slice(0, 3);
+  const totalSlides = 1 + newsSlides.length;
+
+  const goTo = (idx) => {
+    setActiveIndex(Math.max(0, Math.min(idx, totalSlides - 1)));
+  };
+
+  // Touch handlers
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isDragging.current = false;
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (Math.abs(dx) > dy && Math.abs(dx) > 10) {
+      isDragging.current = true;
+      e.stopPropagation(); // prevent pull-to-refresh interfering
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isDragging.current || touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (dx < -40) goTo(activeIndex + 1);
+    else if (dx > 40) goTo(activeIndex - 1);
+    touchStartX.current = null;
+    isDragging.current = false;
+  };
+
+  // Mouse drag (desktop)
+  const mouseStartX = useRef(null);
+  const handleMouseDown = (e) => { mouseStartX.current = e.clientX; };
+  const handleMouseUp = (e) => {
+    if (mouseStartX.current === null) return;
+    const dx = e.clientX - mouseStartX.current;
+    if (Math.abs(dx) > 40) dx < 0 ? goTo(activeIndex + 1) : goTo(activeIndex - 1);
+    mouseStartX.current = null;
+  };
+
+  const formatNewsDate = (dateStr) => {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  return (
+    <section className="flex flex-col gap-3 select-none">
+      {/* Slide track */}
+      <div
+        ref={containerRef}
+        className="relative overflow-hidden rounded-xl cursor-grab active:cursor-grabbing"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+      >
+        <div
+          className="flex"
+          style={{
+            transform: `translateX(-${activeIndex * 100}%)`,
+            transition: "transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+            willChange: "transform",
+          }}
+        >
+          {/* ── Card 0: Kas Finansial ── */}
+          <div className="w-full shrink-0 h-[210px]">
+            <div
+              className="relative overflow-hidden text-white p-5 rounded-xl flex flex-col h-full"
+              style={{
+                background: "linear-gradient(145deg, #0a3460 0%, #0f4c81 50%, #1565a8 100%)",
+              }}
+            >
+              {/* Background Icon */}
+              <Wallet className="absolute -right-6 -bottom-6 w-40 h-40 text-white opacity-[0.07] pointer-events-none rotate-[-10deg]" />
+
+              {/* Top label */}
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-300">
+                  <Wallet size={16} />
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Kas Perumahan</span>
+                </div>
+                {/* Iuran status pill */}
+                {!loading && (
+                  <span
+                    className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      statusIuran === "lunas"
+                        ? "bg-emerald-400/20 text-emerald-300"
+                        : statusIuran === "pending"
+                          ? "bg-amber-400/20 text-amber-300"
+                          : "bg-red-400/20 text-red-300"
+                    }`}
+                  >
+                    {statusIuran === "lunas" && <CheckCircle size={10} />}
+                    {statusIuran !== "lunas" && <AlertCircle size={10} />}
+                    {statusIuran === "lunas" ? "Iuran Lunas" : statusIuran === "pending" ? "Pending" : "Belum Bayar"}
+                  </span>
+                )}
+              </div>
+
+              {/* Main saldo */}
+              <div className="relative z-10 flex-1 flex flex-col justify-center">
+                <p className="text-slate-400 text-[11px] font-medium m-0 mb-1">Total Saldo</p>
+                {loading ? (
+                  <span className="inline-block w-40 h-8 bg-white/15 rounded-lg animate-pulse" />
+                ) : (
+                  <span
+                    className="tabular-nums font-extrabold leading-none"
+                    style={{ fontSize: "28px" }}
+                  >
+                    {formatRupiah(totalKas)}
+                  </span>
+                )}
+              </div>
+
+              {/* Bottom: Pendapatan | Pengeluaran */}
+              <div className="relative z-10 border-t border-white/10 pt-3 grid grid-cols-2 gap-2">
+                {/* Pendapatan */}
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-1 text-emerald-400">
+                    <ArrowUpRight size={13} />
+                    <span className="text-[10px] font-bold uppercase tracking-wide">Pendapatan</span>
+                  </div>
+                  {loading ? (
+                    <span className="inline-block w-24 h-4 bg-white/15 rounded animate-pulse" />
+                  ) : (
+                    <span className="text-emerald-300 text-[13px] font-extrabold tabular-nums">
+                      {formatRupiah(totalPemasukan)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Pengeluaran */}
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-1 text-rose-400">
+                    <ArrowDownRight size={13} />
+                    <span className="text-[10px] font-bold uppercase tracking-wide">Pengeluaran</span>
+                  </div>
+                  {loading ? (
+                    <span className="inline-block w-24 h-4 bg-white/15 rounded animate-pulse" />
+                  ) : (
+                    <span className="text-rose-300 text-[13px] font-extrabold tabular-nums">
+                      {formatRupiah(totalPengeluaran)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Cards 1-3: Berita Terkini ── */}
+          {newsSlides.map((item, i) => (
+            <div key={item.id_berita || i} className="w-full shrink-0 h-[210px]">
+              <div
+                className="relative overflow-hidden rounded-xl p-5 flex flex-col h-full"
+                style={{
+                  background: NEWS_GRADIENTS[i % NEWS_GRADIENTS.length],
+                }}
+              >
+                {/* Background Icon */}
+                <Newspaper className="absolute -right-4 -bottom-4 w-40 h-40 text-white opacity-[0.05] pointer-events-none rotate-[5deg]" />
+
+                {/* Badge + date */}
+                <div className="relative z-10 flex items-center justify-between shrink-0">
+                  <span className="flex items-center gap-1.5 bg-white/15 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+                    <Newspaper size={11} />
+                    BERITA TERKINI
+                  </span>
+                  <span className="flex items-center gap-1 text-slate-300 text-[10px] font-medium">
+                    <CalendarDays size={11} />
+                    {formatNewsDate(item.tanggal)}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h2
+                  className="relative z-10 text-white font-bold leading-snug m-0 mt-2.5"
+                  style={{
+                    fontSize: "15px",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {item.judul || "Berita Perumahan"}
+                </h2>
+
+                {/* Excerpt */}
+                <p
+                  className="relative z-10 text-slate-300 text-[12px] leading-relaxed m-0 mt-1.5 flex-1"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {item.konten || ""}
+                </p>
+
+                {/* Bottom row: counter + CTA button */}
+                <div className="relative z-10 flex items-center justify-between mt-3 shrink-0">
+                  <span className="text-white/40 text-[10px] font-medium">
+                    {i + 1} / {newsSlides.length}
+                  </span>
+                  <button
+                    className="flex items-center gap-1 bg-white/15 hover:bg-white/25 active:bg-white/30 text-white text-[11px] font-bold px-3 py-1.5 rounded-full border-none cursor-pointer transition-colors"
+                    onClick={(e) => { e.stopPropagation(); onOpenNews(item); }}
+                  >
+                    Baca Selengkapnya
+                    <ArrowRight size={12} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Dot indicators */}
+      {totalSlides > 1 && (
+        <div className="flex items-center justify-center gap-1.5">
+          {Array.from({ length: totalSlides }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              aria-label={`Slide ${i + 1}`}
+              className="transition-all duration-300 rounded-full"
+              style={{
+                width: activeIndex === i ? "20px" : "6px",
+                height: "6px",
+                background: activeIndex === i ? "#0f4c81" : "#cbd5e1",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Main Home Component ────────────────────────────────────────────────────
 export default function Home() {
   const user = useStore((state) => state.user);
+  const showAlert = useStore((state) => state.showAlert);
+  const showConfirm = useStore((state) => state.showConfirm);
   const navigate = useNavigate();
 
   const [totalKas, setTotalKas] = useState(0);
+  const [totalPemasukan, setTotalPemasukan] = useState(0);
+  const [totalPengeluaran, setTotalPengeluaran] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [latestNews, setLatestNews] = useState([]);
+  const [selectedNews, setSelectedNews] = useState(null);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [dataSource, setDataSource] = useState("network");
+  const [isAllTrxOpen, setIsAllTrxOpen] = useState(false);
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
 
-  const myLatestTransactions = useMemo(() => {
+  const myAllTransactions = useMemo(() => {
     return [...transactions]
       .filter((t) => t.id_user === user?.id_user)
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .slice(0, 5);
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [transactions, user?.id_user]);
+
+  const myLatestTransactions = useMemo(() => {
+    return myAllTransactions.slice(0, 5);
+  }, [myAllTransactions]);
 
   // Computed payment status for this month
   const thisMonth = new Date().getMonth();
@@ -56,14 +544,61 @@ export default function Home() {
     (t) => t.status === "pending",
   ).length;
 
+  // ── Balance Trend: net saldo per bulan dari semua transaksi verified ──────
+  const balanceTrend = useMemo(() => {
+    // Helper: hitung net saldo untuk bulan & tahun tertentu
+    const netForMonth = (month, year) =>
+      transactions
+        .filter((t) => {
+          const d = new Date(t.timestamp);
+          return (
+            t.status === "verified" &&
+            d.getMonth() === month &&
+            d.getFullYear() === year
+          );
+        })
+        .reduce((acc, t) => {
+          const n = parseFloat(t.nominal) || 0;
+          return t.jenis === "pemasukan" ? acc + n : acc - n;
+        }, 0);
+
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+
+    // Bulan lalu
+    const prevDate = new Date(curYear, curMonth - 1, 1);
+    const prevMonth = prevDate.getMonth();
+    const prevYear = prevDate.getFullYear();
+
+    const thisNet = netForMonth(curMonth, curYear);
+    const lastNet = netForMonth(prevMonth, prevYear);
+    const diff = thisNet - lastNet;
+    const pct =
+      lastNet !== 0 ? ((diff / Math.abs(lastNet)) * 100).toFixed(1) : null;
+
+    // Sparkline: 6 bulan terakhir (dari 5 bulan lalu hingga bulan ini)
+    const spark = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(curYear, curMonth - 5 + i, 1);
+      return netForMonth(d.getMonth(), d.getFullYear());
+    });
+
+    const sparkMax = Math.max(...spark.map(Math.abs), 1);
+
+    return { thisNet, lastNet, diff, pct, spark, sparkMax, curMonth, curYear, prevMonth, prevYear };
+  }, [transactions]);
+
   const fetchData = async (forceRefresh = false) => {
     if (forceRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      const transRes = await getTransactions(
-        forceRefresh ? { forceRefresh: true } : {},
-      );
+      const [transRes, newsRes, ticketsRes] = await Promise.all([
+        getTransactions(forceRefresh ? { forceRefresh: true } : {}),
+        getNews(forceRefresh ? { forceRefresh: true } : {}),
+        getTickets(forceRefresh ? { forceRefresh: true } : {}),
+      ]);
+
       if (transRes?._meta?.source) {
         setDataSource(transRes._meta.source);
       }
@@ -72,29 +607,62 @@ export default function Home() {
         setTransactions(transRes.data);
 
         let total = 0;
+        let pemasukan = 0;
+        let pengeluaran = 0;
         transRes.data.forEach((t) => {
           if (t.status === "verified") {
-            if (t.jenis === "pemasukan") total += parseFloat(t.nominal);
-            if (t.jenis === "pengeluaran") total -= parseFloat(t.nominal);
+            const n = parseFloat(t.nominal) || 0;
+            if (t.jenis === "pemasukan") { total += n; pemasukan += n; }
+            if (t.jenis === "pengeluaran") { total -= n; pengeluaran += n; }
           }
         });
         setTotalKas(total);
+        setTotalPemasukan(pemasukan);
+        setTotalPengeluaran(pengeluaran);
 
         // Determine if there are unread notifications
         const myPending = transRes.data.filter(
           (t) => t.id_user === user?.id_user && t.status === "pending",
         );
+        const myVerified = transRes.data.filter((t) => {
+          const d = new Date(t.timestamp);
+          return (
+            t.id_user === user?.id_user &&
+            t.status === "verified" &&
+            d.getMonth() === thisMonth &&
+            d.getFullYear() === thisYear
+          );
+        });
         const hasPayment = transRes.data.some((t) => {
           const d = new Date(t.timestamp);
           return (
             t.id_user === user?.id_user &&
             d.getMonth() === thisMonth &&
-            d.getFullYear() === thisYear
+            d.getFullYear() === thisYear &&
+            (t.status === "verified" || t.status === "pending")
           );
         });
+
+        const hasNews = newsRes?.status === "success" && Array.isArray(newsRes.data) && newsRes.data.length > 0;
+
         const showBadge =
-          myPending.length > 0 || (user?.role === "warga" && !hasPayment);
+          myPending.length > 0 ||
+          myVerified.length > 0 ||
+          (user?.role === "warga" && !hasPayment) ||
+          hasNews;
         setHasUnread(showBadge);
+      }
+
+      if (newsRes?.status === "success" && Array.isArray(newsRes.data)) {
+        const sorted = [...newsRes.data].sort(
+          (a, b) => new Date(b.tanggal) - new Date(a.tanggal),
+        );
+        setLatestNews(sorted.slice(0, 3));
+      }
+
+      if (ticketsRes?.status === "success" && Array.isArray(ticketsRes.data)) {
+        const openCount = ticketsRes.data.filter((t) => t.status === "open").length;
+        setOpenTicketsCount(openCount);
       }
     } catch (err) {
       console.error("Error fetching data", err);
@@ -103,6 +671,14 @@ export default function Home() {
       setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    // Safeguard: Pastikan body scroll tidak terkunci saat halaman Beranda dimuat
+    document.body.style.overflow = "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -121,12 +697,79 @@ export default function Home() {
     }).format(number);
   };
 
+  const handleSendReminder = async () => {
+    try {
+      setLoading(true);
+      const userRes = await getUsers({ forceRefresh: true });
+      if (userRes.status !== "success") {
+        showAlert("Gagal mengambil data warga.", { variant: "danger", title: "Error" });
+        return;
+      }
+      
+      const allUsers = userRes.data || [];
+      const wargas = allUsers.filter((u) => u.role === "warga");
+      
+      const now = new Date();
+      const curMonth = now.getMonth();
+      const curYear = now.getFullYear();
+      const monthName = now.toLocaleDateString("id-ID", { month: "long" });
+      
+      const paidUserIds = new Set(
+        transactions
+          .filter((t) => {
+            const d = new Date(t.timestamp);
+            return (
+              d.getMonth() === curMonth &&
+              d.getFullYear() === curYear &&
+              (t.status === "verified" || t.status === "pending")
+            );
+          })
+          .map((t) => t.id_user)
+      );
+      
+      const unpaidWargas = wargas.filter((w) => !paidUserIds.has(w.id_user));
+      
+      if (unpaidWargas.length === 0) {
+        showAlert(`Semua warga (${wargas.length}) telah membayar atau melaporkan iuran untuk bulan ${monthName} ${curYear}! Terima kasih.`, {
+          variant: "success",
+          title: "Semua Iuran Lunas",
+        });
+      } else {
+        const listStr = unpaidWargas
+          .map((w) => `• ${w.nama} (${w.blok_rumah})`)
+          .join("\n");
+          
+        showConfirm(
+          `Terdapat ${unpaidWargas.length} warga yang belum membayar iuran bulan ${monthName} ${curYear}:\n\n${listStr}\n\nKirimkan notifikasi pengingat pembayaran ke mereka?`,
+          () => {
+            showAlert(
+              `Notifikasi pengingat pembayaran iuran bulan ${monthName} berhasil dikirim ke ${unpaidWargas.length} warga via WhatsApp & Notifikasi In-App!`,
+              { variant: "success", title: "Pengingat Terkirim" }
+            );
+          },
+          {
+            title: "Kirim Pengingat Iuran",
+            variant: "warning",
+            confirmLabel: "Kirim Sekarang",
+            cancelLabel: "Batal",
+          }
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      showAlert("Terjadi kesalahan koneksi saat mengirim pengingat.", { variant: "danger", title: "Koneksi Gagal" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePayNow = () => {
     window.dispatchEvent(new CustomEvent("open-payment-modal"));
   };
 
   return (
-    <div className="flex flex-col gap-6" {...pull.bind}>
+    <>
+    <div className="flex flex-col gap-6 pb-24" {...pull.bind}>
       {pull.showPullHint && (
         <div className={`sticky top-2 z-[31] mx-auto mb-2.5 w-fit px-3 py-[7px] rounded-full border text-xs font-semibold ${pull.isReady ? "border-green-300 bg-green-50 text-green-800" : "border-indigo-200 bg-indigo-50 text-indigo-800"}`}>
           {pull.isReady ? "Lepas untuk muat ulang" : "Tarik untuk muat ulang"}
@@ -135,115 +778,253 @@ export default function Home() {
       <CacheFallbackBadge source={dataSource} />
       
       {/* Header */}
-      <header className="flex justify-between items-center">
-        <div>
-          <h2>Halo, {user?.nama || "Warga"}</h2>
-          <p className="text-gray-500">
-            {user?.blok_rumah || "-"} •{" "}
-            <span className="capitalize bg-indigo-100 text-[#0f4c81] px-2 py-0.5 rounded-full text-[11px] font-medium">
-              {user?.role}
-            </span>
-          </p>
+      <header className="flex justify-between items-center py-1">
+        <div className="flex items-center gap-3">
+          <img
+            src="/avatar_placeholder.png"
+            alt="Avatar"
+            className="w-12 h-12 rounded-full object-cover border border-gray-100 shadow-sm"
+          />
+          <div className="flex flex-col justify-center">
+            <span className="text-[13px] font-medium text-gray-400 leading-tight">Welcome Back,</span>
+            <h2 className="text-[20px] font-extrabold text-gray-900 m-0 leading-tight">
+              {user?.nama || "Warga"}!
+            </h2>
+          </div>
         </div>
         <div
-          className="bg-gray-100 p-2 rounded-full cursor-pointer relative transition-colors flex items-center justify-center hover:bg-gray-200"
+          className="cursor-pointer relative transition-all duration-200 flex items-center justify-center p-2 text-gray-700 hover:text-gray-950 active:scale-95"
           onClick={() => {
             setIsNotifOpen(true);
             setHasUnread(false);
           }}
         >
-          <Bell size={20} />
-          {hasUnread && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-gray-100 rounded-full"></span>}
+          <Bell size={24} className="stroke-[1.75]" />
+          {hasUnread && (
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border border-white rounded-full animate-pulse z-10"></span>
+          )}
         </div>
       </header>
 
-      {/* Financial Card */}
-      <section className="bg-[#0f4c81] text-white p-6 rounded-xl flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-slate-200">
-          <Wallet size={20} />
-          <span className="text-xs font-medium">Total Kas Perumahan</span>
-        </div>
-        <h1 className="text-white my-2 tabular-nums">{formatRupiah(totalKas)}</h1>
-        <p className="text-xs font-medium text-emerald-300">Saldo kas aktif</p>
-      </section>
+      {/* ── Swipeable Hero Carousel ── */}
+      <HeroCarousel
+        totalKas={totalKas}
+        totalPemasukan={totalPemasukan}
+        totalPengeluaran={totalPengeluaran}
+        latestNews={latestNews}
+        loading={loading}
+        formatRupiah={formatRupiah}
+        statusIuran={statusIuran}
+        onOpenNews={setSelectedNews}
+      />
+      {/* ── Quick Actions ── */}
+      <section className="grid grid-cols-4 gap-3">
+        <button
+          className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+          onClick={() => navigate("/admin/users")}
+        >
+          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <Users size={22} />
+          </div>
+          <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Data Warga</span>
+        </button>
+        <button
+          className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+          onClick={() => navigate("/cashflow")}
+        >
+          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <Landmark size={22} />
+          </div>
+          <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Keuangan</span>
+        </button>
+        <button
+          className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+          onClick={() => navigate("/service", { state: { openSheet: "berita" } })}
+        >
+          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Megaphone size={22} />
+          </div>
+          <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Pengumuman</span>
+        </button>
+        <button
+          className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+          onClick={() => navigate("/service", { state: { openSheet: "keluhan" } })}
+        >
+          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+            <MessageSquareWarning size={22} />
+          </div>
+          <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Pengaduan</span>
+        </button>
 
-      {/* Status Widget */}
-      <section className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-center">
-        <div>
-          <h3 className="text-[15px] font-bold m-0">Status Iuran Bulan Ini</h3>
-          <p className="text-xs font-medium text-gray-500 mt-1">
-            {new Date().toLocaleDateString("id-ID", {
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
-        </div>
-        <div className={`flex items-center gap-1.5 px-3 py-2 rounded-full ${
-          statusIuran === "lunas" ? "bg-emerald-100 text-emerald-500" :
-          statusIuran === "pending" ? "bg-amber-100 text-amber-500" :
-          "bg-red-100 text-red-500"
-        }`}>
-          {statusIuran === "lunas" && <CheckCircle size={18} />}
-          {(statusIuran === "pending" || statusIuran === "belum_bayar") && <AlertCircle size={18} />}
-
-          <span className="text-xs font-medium">
-            {statusIuran === "lunas"
-              ? "Lunas"
-              : statusIuran === "pending"
-                ? "Menunggu Verifikasi"
-                : "Belum Bayar"}
-          </span>
-        </div>
-      </section>
-
-      {/* ===== ADMIN QUICK ACTIONS ===== */}
-      {user?.role === "admin" && (
-        <section className="flex flex-col gap-2.5">
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest m-0">Aksi Cepat Admin</p>
-          <div className="flex flex-col gap-2.5">
-            {/* Verifikasi Pembayaran */}
+        {/* Admin Specific Quick Actions */}
+        {user?.role === "admin" && (
+          <>
             <button
-              className="flex items-center gap-3.5 bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer text-left w-full shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all active:scale-95 active:bg-gray-50"
+              className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer relative"
               onClick={() => navigate("/admin/verifikasi")}
             >
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                 <ClipboardCheck size={22} />
               </div>
-              <div className="flex-1 flex flex-col gap-0.5">
-                <span className="text-sm font-bold text-gray-800">Verifikasi</span>
-                <span className="text-[11px] text-gray-400">Tinjau bukti bayar warga</span>
-              </div>
+              <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Verifikasi</span>
               {pendingCount > 0 && (
-                <span className="bg-red-100 text-red-600 text-[11px] font-extrabold px-2 py-0.5 rounded-full min-w-[24px] text-center">
+                <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border border-white">
                   {pendingCount}
                 </span>
               )}
-              <ChevronRight size={16} className="text-gray-300 shrink-0" />
             </button>
 
-            {/* Kelola Pengguna */}
             <button
-              className="flex items-center gap-3.5 bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer text-left w-full shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all active:scale-95 active:bg-gray-50"
-              onClick={() => navigate("/admin/users")}
+              className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer relative"
+              onClick={() => navigate("/service", { state: { openSheet: "pantauan" } })}
             >
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-purple-50 text-purple-600">
-                <Users size={22} />
+              <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <MessageSquareWarning size={22} />
               </div>
-              <div className="flex-1 flex flex-col gap-0.5">
-                <span className="text-sm font-bold text-gray-800">Pengguna</span>
-                <span className="text-[11px] text-gray-400">Tambah & kelola akun warga</span>
-              </div>
-              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+              <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Keluhan</span>
+              {openTicketsCount > 0 && (
+                <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border border-white">
+                  {openTicketsCount}
+                </span>
+              )}
             </button>
+
+            <button
+              className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+              onClick={() => navigate("/service", { state: { openSheet: "berita" } })}
+            >
+              <div className="w-12 h-12 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                <Newspaper size={22} />
+              </div>
+              <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Tambah Berita</span>
+            </button>
+
+            <button
+              className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+              onClick={handleSendReminder}
+            >
+              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <Bell size={22} />
+              </div>
+              <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Kirim Pengingat</span>
+            </button>
+          </>
+        )}
+      </section>
+
+      {/* ── Balance Trend Card ── */}
+      <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {/* Header row */}
+        <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-gray-100">
+          <div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest m-0">Insight Saldo</p>
+            <h3 className="text-[15px] font-bold m-0 mt-0.5">Tren Balance Bulanan</h3>
           </div>
-        </section>
-      )}
+          <div
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+              balanceTrend.diff > 0
+                ? "bg-emerald-50 text-emerald-600"
+                : balanceTrend.diff < 0
+                  ? "bg-red-50 text-red-500"
+                  : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            {balanceTrend.diff > 0 ? <TrendingUp size={13} /> : balanceTrend.diff < 0 ? <TrendingDown size={13} /> : <Minus size={13} />}
+            {loading ? "—" : balanceTrend.pct !== null ? `${balanceTrend.diff >= 0 ? "+" : ""}${balanceTrend.pct}%` : "Baru"}
+          </div>
+        </div>
+
+        {/* Numbers row */}
+        <div className="grid grid-cols-2 divide-x divide-gray-100 px-0">
+          {/* This month */}
+          <div className="flex flex-col gap-0.5 px-4 py-3">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+              {new Date(balanceTrend.curYear, balanceTrend.curMonth).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+            </span>
+            {loading ? (
+              <span className="inline-block w-28 h-5 bg-gray-100 rounded animate-pulse mt-1" />
+            ) : (
+              <span
+                className={`text-[15px] font-extrabold tabular-nums ${
+                  balanceTrend.thisNet >= 0 ? "text-emerald-600" : "text-red-500"
+                }`}
+              >
+                {balanceTrend.thisNet >= 0 ? "+" : ""}{formatRupiah(balanceTrend.thisNet)}
+              </span>
+            )}
+            <span className="text-[10px] text-gray-400 font-medium">Bulan ini</span>
+          </div>
+
+          {/* Last month */}
+          <div className="flex flex-col gap-0.5 px-4 py-3">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+              {new Date(balanceTrend.prevYear, balanceTrend.prevMonth).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+            </span>
+            {loading ? (
+              <span className="inline-block w-28 h-5 bg-gray-100 rounded animate-pulse mt-1" />
+            ) : (
+              <span
+                className={`text-[15px] font-extrabold tabular-nums ${
+                  balanceTrend.lastNet >= 0 ? "text-gray-700" : "text-red-400"
+                }`}
+              >
+                {balanceTrend.lastNet >= 0 ? "+" : ""}{formatRupiah(balanceTrend.lastNet)}
+              </span>
+            )}
+            <span className="text-[10px] text-gray-400 font-medium">Bulan lalu</span>
+          </div>
+        </div>
+
+        {/* Sparkline mini bar chart — 6 bulan */}
+        <div className="px-4 pb-4 pt-1">
+          <div className="flex items-end gap-[5px] h-10">
+            {balanceTrend.spark.map((val, i) => {
+              const isCurrentMonth = i === 5;
+              const heightPct = Math.abs(val) / balanceTrend.sparkMax;
+              const barH = Math.max(heightPct * 40, 4); // px, min 4px
+              const isPos = val >= 0;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center justify-end h-10 gap-[2px]">
+                  <div
+                    style={{ height: `${barH}px` }}
+                    className={`w-full rounded-sm transition-all duration-500 ${
+                      isCurrentMonth
+                        ? isPos ? "bg-emerald-500" : "bg-red-400"
+                        : isPos ? "bg-emerald-200" : "bg-red-200"
+                    }`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-[5px] mt-1">
+            {balanceTrend.spark.map((_, i) => {
+              const d = new Date(balanceTrend.curYear, balanceTrend.curMonth - 5 + i, 1);
+              return (
+                <span key={i} className={`flex-1 text-center text-[9px] font-medium ${
+                  i === 5 ? "text-[#0f4c81] font-bold" : "text-gray-300"
+                }`}>
+                  {d.toLocaleDateString("id-ID", { month: "short" }).slice(0, 3)}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+
 
       {/* Quick Info Slider */}
       <section className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <Bell size={18} className="text-[#0f4c81]" />
-          <h3 className="text-[15px] font-bold m-0">5 Riwayat Transaksi Terakhir</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-[15px] font-bold m-0">Riwayat Transaksi Terakhir</h3>
+          <button
+            onClick={() => setIsAllTrxOpen(true)}
+            className="flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-50/50 hover:bg-blue-50 px-2.5 py-1 rounded-full border-none cursor-pointer active:scale-95 transition-all"
+          >
+            Lihat Semua
+            <ChevronRight size={14} />
+          </button>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           {myLatestTransactions.length > 0 ? (
@@ -310,5 +1091,20 @@ export default function Home() {
         onPayNow={handlePayNow}
       />
     </div>
+
+    {/* News Detail Bottom Sheet — rendered outside scroll container */}
+    <NewsDetailSheet
+      news={selectedNews}
+      onClose={() => setSelectedNews(null)}
+    />
+
+    {/* All Transactions Bottom Sheet */}
+    <AllTransactionsSheet
+      transactions={myAllTransactions}
+      isOpen={isAllTrxOpen}
+      onClose={() => setIsAllTrxOpen(false)}
+      formatRupiah={formatRupiah}
+    />
+    </>
   );
 }

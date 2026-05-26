@@ -23,16 +23,16 @@ const FILTERS = [
   { key: "rejected", label: "Ditolak" },
 ];
 
-/** Konversi berbagai format URL Google Drive ke URL thumbnail yang bisa diembed di <img> */
+/** Konversi berbagai format URL Google Drive ke URL gambar yang bisa diembed di <img> */
 function getDriveImgUrl(url) {
   if (!url) return null;
-  // Sudah format thumbnail
-  if (url.includes("/thumbnail") || url.includes("lh3.googleusercontent"))
-    return url;
-  // Format /file/d/FILE_ID/view
+  // Ekstrak ID dari URL (baik dari /d/ID atau ?id=ID)
   const m =
     url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w800`;
+  if (m) {
+    // Endpoint uc?export=view lebih handal untuk file publik dibanding /thumbnail
+    return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  }
   return url;
 }
 
@@ -336,6 +336,7 @@ export default function AdminVerifikasi() {
                       src={getDriveImgUrl(trx.url_bukti)}
                       alt="Bukti Pembayaran"
                       className="w-full max-h-[180px] object-cover block"
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
                         e.target.style.display = "none";
                         e.target.nextSibling.style.display = "flex";
@@ -343,14 +344,19 @@ export default function AdminVerifikasi() {
                     />
                   ) : null}
                   <div
-                    className="text-[11px] text-gray-400 p-6 text-center flex-col items-center justify-center"
+                    className="text-[11px] text-gray-400 p-6 text-center flex-col items-center justify-center w-full"
                     style={{ display: trx.url_bukti ? "none" : "flex" }}
                   >
                     <ImageOff
                       size={24}
                       className="mx-auto mb-1.5 block text-gray-300"
                     />
-                    Tidak ada bukti foto
+                    <span>Tidak ada bukti foto</span>
+                    {trx.url_bukti && (
+                      <a href={trx.url_bukti} target="_blank" rel="noreferrer" className="text-blue-500 mt-2 underline break-all">
+                        Buka Link Manual
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import useStore from "../store/useStore";
 import {
   MessageSquareWarning,
@@ -63,11 +64,12 @@ function BottomSheet({ isOpen, onClose, title, children, heightClass = "h-[82vh]
 
 // ---------- Main Component ----------
 export default function ServiceHub() {
+  const location = useLocation();
   const user = useStore((state) => state.user);
   const showAlert = useStore((s) => s.showAlert);
 
   // Which bottom sheet is open
-  const [openSheet, setOpenSheet] = useState(null); // null | 'keluhan' | 'saran' | 'berita' | 'pantauan'
+  const [openSheet, setOpenSheet] = useState(location.state?.openSheet || null); // null | 'keluhan' | 'saran' | 'berita' | 'pantauan'
 
   const [tickets, setTickets] = useState([]);
   const [newsList, setNewsList] = useState([]);
@@ -165,7 +167,7 @@ export default function ServiceHub() {
       const res = await createNewsReply({
         id_berita: selectedNews.id_berita,
         id_user: user?.id_user || "",
-        nama_pengirim: user?.nama || "Pengguna",
+        nama_pengirim: user?.nama || "Warga",
         isi_balasan: text,
       });
       if (res.status === "success") {
@@ -496,7 +498,7 @@ export default function ServiceHub() {
                   {newsReplies.map((reply) => (
                     <div key={reply.id_balasan} className="border border-slate-200 bg-slate-50 rounded-[14px] p-3">
                       <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                        <span>{reply.nama_pengirim || "Pengguna"}</span>
+                        <span>{reply.nama_pengirim || "Warga"}</span>
                         <span>{reply.timestamp ? new Date(reply.timestamp).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</span>
                       </div>
                       <p className="m-0 text-[13px] text-gray-700 leading-relaxed">{reply.isi_balasan}</p>
