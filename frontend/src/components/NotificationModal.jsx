@@ -237,14 +237,14 @@ export default function NotificationModal({ isOpen, onClose, onPayNow }) {
       onClick={handleOverlayClick}
     >
       <div 
-        className={`w-full max-w-[480px] bg-white rounded-t-3xl h-[75vh] flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        className={`w-full max-w-[480px] bg-white dark:bg-[#131c33] rounded-t-3xl h-[75vh] flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-5 border-b border-gray-100 shrink-0">
+        <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-slate-800/80 shrink-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-gray-800 m-0">Notifikasi</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 m-0">Notifikasi</h3>
             {unreadCount > 0 && (
               <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
                 {unreadCount} Baru
@@ -252,7 +252,7 @@ export default function NotificationModal({ isOpen, onClose, onPayNow }) {
             )}
           </div>
           <button 
-            className="p-2 bg-gray-100 rounded-full text-gray-600 border-none cursor-pointer flex items-center justify-center transition-colors hover:bg-gray-200" 
+            className="p-2 bg-gray-100 dark:bg-slate-800/60 rounded-full text-gray-600 dark:text-gray-400 border-none cursor-pointer flex items-center justify-center transition-colors hover:bg-gray-200 dark:hover:bg-slate-700/60" 
             onClick={onClose}
           >
             <X size={20} />
@@ -260,7 +260,7 @@ export default function NotificationModal({ isOpen, onClose, onPayNow }) {
         </div>
 
         {/* Body */}
-        <div className="p-4 overflow-y-auto flex-1 bg-gray-50 flex flex-col gap-3">
+        <div className="p-4 overflow-y-auto flex-1 bg-gray-50 dark:bg-[#0b1020] flex flex-col gap-3">
           <CacheFallbackBadge source={dataSource} />
           
           {loading && (
@@ -286,7 +286,7 @@ export default function NotificationModal({ isOpen, onClose, onPayNow }) {
               return (
                 <div
                   key={notif.id}
-                  className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm transition-opacity duration-200 ${
+                  className={`bg-white dark:bg-[#1a2640] p-4 rounded-xl border border-gray-100 dark:border-slate-700/60 shadow-sm transition-opacity duration-200 ${
                     isRead ? "opacity-55" : getUnreadClasses(notif.type)
                   }`}
                   onClick={() => markRead(notif.id)}
@@ -294,11 +294,11 @@ export default function NotificationModal({ isOpen, onClose, onPayNow }) {
                   <div className="flex justify-between items-start mb-1">
                     <div className="flex items-center gap-1.5">
                       <TypeIcon icon={notif.icon} type={notif.type} />
-                      <p className="text-sm font-bold text-gray-800 m-0">{notif.title}</p>
+                      <p className="text-sm font-bold text-gray-800 dark:text-gray-100 m-0">{notif.title}</p>
                     </div>
                     <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">{notif.time}</span>
                   </div>
-                  <p className="text-xs text-gray-600 leading-relaxed mt-1 mb-0">{notif.body}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mt-1 mb-0">{notif.body}</p>
                   {notif.action && (
                     <button
                       className={`inline-flex items-center gap-1 mt-2.5 text-xs font-bold py-1.5 px-3.5 rounded-lg border-none cursor-pointer transition-colors ${getActionBtnClasses(notif.action.type)}`}

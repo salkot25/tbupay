@@ -1,5 +1,5 @@
 import { backendApiAdapter } from "../adapters/backendApiAdapter";
-import { toTicketModel } from "../../domain/models/ticketModel";
+import { toTicketModel, toTicketReplyModel } from "../../domain/models/ticketModel";
 import { mapListResponseData } from "../../domain/mappers/apiResponseMappers";
 
 export const ticketRepository = {
@@ -14,5 +14,14 @@ export const ticketRepository = {
 
   updateStatus(payload) {
     return backendApiAdapter.post("updateTicketStatus", payload);
+  },
+
+  async getReplies(id_tiket, options = {}) {
+    const response = await backendApiAdapter.get("getTicketReplies", { id_tiket }, options);
+    return mapListResponseData(response, toTicketReplyModel);
+  },
+
+  addReply(payload) {
+    return backendApiAdapter.post("addTicketReply", payload);
   },
 };

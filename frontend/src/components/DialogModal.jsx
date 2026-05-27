@@ -81,14 +81,14 @@ export default function DialogModal() {
       onClick={handleOverlayClick}
     >
       <div
-        className={`w-full max-w-[480px] bg-white rounded-t-[28px] shadow-[0_-4px_24px_rgba(0,0,0,0.15)] overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        className={`w-full max-w-[480px] bg-white dark:bg-[#131c33] rounded-t-[28px] shadow-[0_-4px_24px_rgba(0,0,0,0.15)] overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
         role="dialog"
         aria-modal="true"
       >
         {/* Drag handle */}
-        <div className="w-[44px] h-[5px] rounded-full bg-gray-200 mx-auto mt-3 mb-1" />
+        <div className="w-[44px] h-[5px] rounded-full bg-gray-200 dark:bg-slate-700 mx-auto mt-3 mb-1" />
 
         {/* Header */}
         <div className={`flex items-start justify-between p-5 pb-3 border-b-2 ${VARIANT_ACCENT[variant]}`}>
@@ -97,13 +97,13 @@ export default function DialogModal() {
               {ICON_MAP[variant]}
             </div>
             {title && (
-              <p className="text-[16px] font-bold text-gray-900 m-0 leading-snug">
+              <p className="text-[16px] font-bold text-gray-900 dark:text-gray-100 m-0 leading-snug">
                 {title}
               </p>
             )}
           </div>
           <button
-            className="p-1.5 bg-gray-100 rounded-full text-gray-500 border-none cursor-pointer flex items-center justify-center transition-colors hover:bg-gray-200 shrink-0 ml-2"
+            className="p-1.5 bg-gray-100 dark:bg-slate-800/60 rounded-full text-gray-500 dark:text-gray-400 border-none cursor-pointer flex items-center justify-center transition-colors hover:bg-gray-200 dark:hover:bg-slate-700/60 shrink-0 ml-2"
             onClick={type === "alert" ? handleConfirm : handleCancel}
           >
             <X size={16} />
@@ -112,7 +112,7 @@ export default function DialogModal() {
 
         {/* Body */}
         <div className="px-5 py-4">
-          <p className="text-[14px] text-gray-600 m-0 leading-relaxed whitespace-pre-line">
+          <p className="text-[14px] text-gray-600 dark:text-gray-300 m-0 leading-relaxed whitespace-pre-line">
             {message}
           </p>
         </div>
@@ -121,7 +121,7 @@ export default function DialogModal() {
         <div className="flex gap-3 px-5 pb-8 pt-1">
           {type === "confirm" && (
             <button
-              className="flex-1 py-3 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-[14px] font-semibold cursor-pointer transition-colors hover:bg-gray-50"
+              className="flex-1 py-3 px-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-gray-700 dark:text-gray-300 text-[14px] font-semibold cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-700/60"
               onClick={handleCancel}
             >
               {cancelLabel}

@@ -26,12 +26,14 @@ const FILTERS = [
 /** Konversi berbagai format URL Google Drive ke URL gambar yang bisa diembed di <img> */
 function getDriveImgUrl(url) {
   if (!url) return null;
-  // Ekstrak ID dari URL (baik dari /d/ID atau ?id=ID)
+  // Sudah format lh3 CDN — langsung pakai
+  if (url.includes("lh3.googleusercontent.com")) return url;
+  // Ekstrak file ID dari berbagai format Drive URL
   const m =
     url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (m) {
-    // Endpoint uc?export=view lebih handal untuk file publik dibanding /thumbnail
-    return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+    // lh3.googleusercontent.com/d/ID — CDN Google yang tidak kena anti-hotlink
+    return `https://lh3.googleusercontent.com/d/${m[1]}=s800`;
   }
   return url;
 }
@@ -67,18 +69,78 @@ export default function AdminVerifikasi() {
   const user = useStore((s) => s.user);
   const showAlert = useStore((s) => s.showAlert);
   const showConfirm = useStore((s) => s.showConfirm);
-  const [transactions, setTransactions] = useState([]);
-  const [userMap, setUserMap] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          return [...parsed.response.data].sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+          );
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const [userMap, setUserMap] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          const map = {};
+          parsed.response.data.forEach((t) => {
+            if (!map[t.id_user]) map[t.id_user] = t.id_user;
+          });
+          return map;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return {};
+  });
+
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cached) return false;
+    } catch (e) {
+      console.error(e);
+    }
+    return true;
+  });
+
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("pending");
   const [processingId, setProcessingId] = useState(null);
-  const [dataSource, setDataSource] = useState("network");
+
+  const [dataSource, setDataSource] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cached) return "cache";
+    } catch (e) {
+      console.error(e);
+    }
+    return "network";
+  });
 
   const fetchData = useCallback(
     async (showRefresh = false, forceRefresh = false) => {
       if (showRefresh) setRefreshing(true);
-      else setLoading(true);
+      else {
+        setLoading(() => {
+          try {
+            const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+            if (cached) return false;
+          } catch {}
+          return true;
+        });
+      }
 
       try {
         const res = await getTransactions(
@@ -88,15 +150,11 @@ export default function AdminVerifikasi() {
           setDataSource(res._meta.source);
         }
         if (res.status === "success") {
-          // Sort newest first
           const sorted = [...res.data].sort(
             (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
           );
           setTransactions(sorted);
 
-          // Build a map id_user -> {nama, blok_rumah} from the transactions themselves
-          // (We embed nama/blok in keterangan is not guaranteed; we rely on id_user label)
-          // For now, we'll use id_user as label. If a getUsers endpoint is added later, swap here.
           const map = {};
           sorted.forEach((t) => {
             if (!map[t.id_user]) map[t.id_user] = t.id_user;
@@ -207,7 +265,7 @@ export default function AdminVerifikasi() {
       {/* Header */}
       <div className="py-4 pb-3 flex justify-between items-center">
         <div>
-          <h2 className="text-[20px] font-bold text-gray-800 m-0">Verifikasi Pembayaran</h2>
+          <h2 className="text-[20px] font-bold text-gray-800 dark:text-gray-100 m-0">Verifikasi Pembayaran</h2>
           <p className="text-[12px] text-gray-400 mt-[2px] m-0">
             Tinjau bukti bayar warga
           </p>
@@ -224,19 +282,19 @@ export default function AdminVerifikasi() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2.5 mb-5">
-        <div className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100 cursor-pointer" onClick={() => setFilter("pending")}>
+        <div className="bg-white dark:bg-[#1a2640] rounded-[14px] p-[14px_10px] text-center border border-gray-100 dark:border-slate-800/80 cursor-pointer" onClick={() => setFilter("pending")}>
           <div className="text-[22px] font-extrabold text-amber-500">{pendingCount}</div>
           <div className="text-[10px] text-gray-400 mt-[2px] uppercase font-semibold">Menunggu</div>
         </div>
         <div
-          className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100 cursor-pointer"
+          className="bg-white dark:bg-[#1a2640] rounded-[14px] p-[14px_10px] text-center border border-gray-100 dark:border-slate-800/80 cursor-pointer"
           onClick={() => setFilter("verified")}
         >
           <div className="text-[22px] font-extrabold text-green-500">{verifiedCount}</div>
           <div className="text-[10px] text-gray-400 mt-[2px] uppercase font-semibold">Terverifikasi</div>
         </div>
         <div
-          className="bg-white rounded-[14px] p-[14px_10px] text-center border border-gray-100 cursor-pointer"
+          className="bg-white dark:bg-[#1a2640] rounded-[14px] p-[14px_10px] text-center border border-gray-100 dark:border-slate-800/80 cursor-pointer"
           onClick={() => setFilter("rejected")}
         >
           <div className="text-[22px] font-extrabold text-red-500">{rejectedCount}</div>
@@ -249,7 +307,7 @@ export default function AdminVerifikasi() {
         {FILTERS.map((f) => (
           <button
             key={f.key}
-            className={`p-[6px_16px] rounded-full border border-gray-200 bg-white text-[12px] font-semibold text-gray-500 cursor-pointer whitespace-nowrap transition-all ${filter === f.key ? "!bg-blue-600 !border-blue-600 !text-white" : ""}`}
+            className={`p-[6px_16px] rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#1a2640] text-[12px] font-semibold text-gray-500 dark:text-gray-400 cursor-pointer whitespace-nowrap transition-all ${filter === f.key ? "!bg-blue-600 !border-blue-600 !text-white" : ""}`}
             onClick={() => setFilter(f.key)}
           >
             {f.label}
@@ -286,11 +344,11 @@ export default function AdminVerifikasi() {
       ) : (
         <div className="flex flex-col gap-3">
           {filtered.map((trx) => (
-            <div key={trx.id_transaksi} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <div key={trx.id_transaksi} className="bg-white dark:bg-[#1a2640] rounded-2xl border border-gray-100 dark:border-slate-800/80 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
               {/* Card Header */}
               <div className="flex justify-between items-center p-[14px_16px_10px] border-b border-dashed border-gray-100">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[14px] font-bold text-gray-800">{trx.id_user}</span>
+                  <span className="text-[14px] font-bold text-gray-800 dark:text-gray-100">{trx.id_user}</span>
                   <span className="text-[11px] text-gray-400">
                     {timeAgo(trx.timestamp)}
                   </span>

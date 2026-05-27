@@ -9,6 +9,18 @@ const useStore = create(
       login: (userData) => set({ user: userData, isAuthenticated: true }),
       logout: () => set({ user: null, isAuthenticated: false }),
 
+      // App Settings
+      isDarkMode: false,
+      toggleDarkMode: () => set((state) => {
+        const next = !state.isDarkMode;
+        document.documentElement.classList.toggle("dark", next);
+        return { isDarkMode: next };
+      }),
+      soundVibration: true,
+      toggleSoundVibration: () => set((state) => ({ soundVibration: !state.soundVibration })),
+      language: "id", // "id" | "en"
+      setLanguage: (lang) => set({ language: lang }),
+
       // Global loading state
       isLoading: false,
       setLoading: (loading) => set({ isLoading: loading }),

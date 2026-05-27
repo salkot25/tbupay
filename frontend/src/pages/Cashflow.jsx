@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import useStore from "../store/useStore";
 import { TrendingUp, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { getTransactions } from "../application/use-cases/transactions/transactionUseCases";
 import {
@@ -88,16 +89,63 @@ const getPeriodTitle = (filter) => {
 };
 
 export default function Cashflow() {
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const isDarkMode = useStore((state) => state.isDarkMode);
+  const [transactions, setTransactions] = useState(() => {
+    try {
+      const cachedTrx = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cachedTrx) {
+        const entry = JSON.parse(cachedTrx);
+        if (entry?.response?.status === "success" && Array.isArray(entry.response.data)) {
+          return entry.response.data.sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+          );
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load cashflow cache in state initializer:", e);
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cachedTrx = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cachedTrx) {
+        const entry = JSON.parse(cachedTrx);
+        if (entry?.response?.status === "success" && Array.isArray(entry.response.data) && entry.response.data.length > 0) {
+          return false;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return true;
+  });
+
+  const [dataSource, setDataSource] = useState(() => {
+    try {
+      const cachedTrx = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cachedTrx) {
+        const entry = JSON.parse(cachedTrx);
+        if (entry?.response?.status === "success" && Array.isArray(entry.response.data) && entry.response.data.length > 0) {
+          return "cache";
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return "network";
+  });
+
   const [refreshing, setRefreshing] = useState(false);
-  const [dataSource, setDataSource] = useState("network");
   const [filter, setFilter] = useState("semua");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   const fetchTransactions = async (forceRefresh = false) => {
     if (forceRefresh) setRefreshing(true);
-    else setLoading(true);
+    else {
+      setLoading((prev) => (transactions.length > 0 ? false : true));
+    }
 
     try {
       const res = await getTransactions(
@@ -107,7 +155,6 @@ export default function Cashflow() {
         setDataSource(res._meta.source);
       }
       if (res.status === "success") {
-        // Sort by timestamp descending
         const sortedData = res.data.sort(
           (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
         );
@@ -363,7 +410,7 @@ export default function Cashflow() {
     return value;
   };
 
-  const barOptions = {
+  const barOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -374,6 +421,7 @@ export default function Cashflow() {
           usePointStyle: true,
           boxWidth: 6,
           font: { size: 10, weight: "bold" },
+          color: isDarkMode ? "#cbd5e1" : "#4b5563",
         },
       },
       tooltip: {
@@ -395,21 +443,24 @@ export default function Cashflow() {
         ticks: {
           callback: formatYAxis,
           font: { size: 9, weight: "medium" },
-          color: "#9ca3af",
+          color: isDarkMode ? "#94a3b8" : "#9ca3af",
         },
-        grid: { color: "#f3f4f6", drawTicks: false },
+        grid: {
+          color: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "#f3f4f6",
+          drawTicks: false,
+        },
         border: { display: false },
       },
       x: {
         grid: { display: false },
         ticks: {
           font: { size: 9, weight: "medium" },
-          color: "#9ca3af",
+          color: isDarkMode ? "#94a3b8" : "#9ca3af",
         },
         border: { display: false },
       },
     },
-  };
+  }), [isDarkMode]);
 
   const doughnutData = useMemo(() => {
     if (pengeluaranPerPos.length === 0) {
@@ -450,7 +501,7 @@ export default function Cashflow() {
     };
   }, [pengeluaranPerPos]);
 
-  const doughnutOptions = {
+  const doughnutOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     cutout: "70%",
@@ -472,7 +523,7 @@ export default function Cashflow() {
         },
       },
     },
-  };
+  }), []);
 
   const displayedTransactions = showAllTransactions
     ? transactions
@@ -488,12 +539,12 @@ export default function Cashflow() {
       <CacheFallbackBadge source={dataSource} />
       
       <div className="py-4">
-        <h2 className="text-xl font-extrabold text-gray-900 m-0">Laporan Keuangan</h2>
-        <p className="text-xs text-gray-500 mt-1">Pantau dan kelola arus kas warga secara real-time</p>
+        <h2 className="text-xl font-bold m-0 text-gray-800 dark:text-gray-100">Laporan Keuangan</h2>
+        <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-1 m-0">Pantau dan kelola arus kas warga secara real-time</p>
       </div>
 
       {/* Periode Tab Switcher (Laporan.jsx style) */}
-      <div className="p-1 rounded-xl flex gap-1 bg-gray-200/60 mb-6">
+      <div className="p-1 rounded-xl flex gap-1 bg-gray-200/60 dark:bg-[#12192c]/80 mb-6">
         {["Hari Ini", "Mingguan", "Bulanan", "Semua"].map((f) => {
           const key = f.toLowerCase().replace(" ", "");
           const isSelected = filter === key;
@@ -506,8 +557,8 @@ export default function Cashflow() {
               }}
               className={`flex-1 text-xs py-2 transition-all duration-200 ${
                 isSelected
-                  ? "font-extrabold rounded-lg shadow-sm bg-white text-gray-900"
-                  : "font-medium text-gray-500 hover:text-gray-900"
+                  ? "font-extrabold rounded-lg shadow-sm bg-white dark:bg-[#1a2640] text-gray-900 dark:text-gray-100"
+                  : "font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
               }`}
             >
               {f}
@@ -574,17 +625,17 @@ export default function Cashflow() {
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         {/* Pemasukan Card */}
-        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#1a2640] p-4 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
+              <div className="p-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
                 <ArrowDownLeft size={16} />
               </div>
               <span className="text-[11px] font-bold text-gray-400 uppercase">Pemasukan</span>
             </div>
             <p className="text-base font-extrabold text-emerald-600 truncate m-0">{formatRupiah(totalMasuk)}</p>
           </div>
-          <div className="mt-3 pt-2 border-t border-dashed border-gray-100 text-[10px] font-bold flex items-center gap-1">
+          <div className="mt-3 pt-2 border-t border-dashed border-gray-100 dark:border-slate-800/80 text-[10px] font-bold flex items-center gap-1">
             {masukChange > 0 ? (
               <span className="text-emerald-600">▲ {masukChange.toFixed(0)}%</span>
             ) : masukChange < 0 ? (
@@ -597,17 +648,17 @@ export default function Cashflow() {
         </div>
 
         {/* Pengeluaran Card */}
-        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#1a2640] p-4 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg shrink-0">
+              <div className="p-1.5 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-lg shrink-0">
                 <ArrowUpRight size={16} />
               </div>
               <span className="text-[11px] font-bold text-gray-400 uppercase">Pengeluaran</span>
             </div>
             <p className="text-base font-extrabold text-rose-600 truncate m-0">{formatRupiah(totalKeluar)}</p>
           </div>
-          <div className="mt-3 pt-2 border-t border-dashed border-gray-100 text-[10px] font-bold flex items-center gap-1">
+          <div className="mt-3 pt-2 border-t border-dashed border-gray-100 dark:border-slate-800/80 text-[10px] font-bold flex items-center gap-1">
             {keluarChange > 0 ? (
               <span className="text-rose-500">▲ {keluarChange.toFixed(0)}%</span>
             ) : keluarChange < 0 ? (
@@ -621,10 +672,10 @@ export default function Cashflow() {
       </div>
 
       {/* Grafik Arus Kas */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mb-6">
+      <div className="bg-white dark:bg-[#1a2640] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm mb-6">
         <div className="flex justify-between items-center mb-4 gap-2">
-          <h3 className="font-bold text-gray-800 text-[15px] m-0 shrink-0">Grafik Arus Kas</h3>
-          <span className="text-[11px] font-extrabold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full capitalize truncate">
+          <h3 className="font-bold text-gray-800 dark:text-gray-100 text-[15px] m-0 shrink-0">Grafik Arus Kas</h3>
+          <span className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-full capitalize truncate">
             {periodTitle}
           </span>
         </div>
@@ -634,8 +685,8 @@ export default function Cashflow() {
       </div>
 
       {/* Kategori Pengeluaran */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mb-6">
-        <h3 className="font-bold text-gray-800 text-[15px] mb-4">Pengeluaran Per Kategori</h3>
+      <div className="bg-white dark:bg-[#1a2640] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm mb-6">
+        <h3 className="font-bold text-gray-800 dark:text-gray-100 text-[15px] mb-4">Pengeluaran Per Kategori</h3>
         {pengeluaranPerPos.length === 0 ? (
           <p className="text-gray-400 text-xs text-center py-8">Belum ada pengeluaran pada periode ini</p>
         ) : (
@@ -669,7 +720,7 @@ export default function Cashflow() {
                       style={{ backgroundColor: dotColor }}
                     />
                     <div className="min-w-0 flex-1 leading-none">
-                      <p className="text-xs font-bold text-gray-700 truncate m-0">
+                      <p className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate m-0">
                         {kategori}
                       </p>
                       <p className="text-[10px] text-gray-400 font-semibold mt-0.5 m-0">
@@ -690,7 +741,7 @@ export default function Cashflow() {
       </div>
 
       {/* Riwayat Transaksi Terakhir */}
-      <h3 className="font-bold text-gray-800 mb-4 text-[15px]">Riwayat Transaksi Terakhir</h3>
+      <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 text-[15px]">Riwayat Transaksi Terakhir</h3>
       <div className="flex flex-col gap-3">
         {loading && <div className="p-4 text-center text-xs text-gray-400">Memuat transaksi...</div>}
         {!loading && transactions.length === 0 && (
@@ -704,11 +755,15 @@ export default function Cashflow() {
             return (
               <div
                 key={trx.id_transaksi || Math.random()}
-                className="bg-white p-4 rounded-xl flex items-center justify-between border border-gray-100 shadow-sm relative overflow-hidden"
+                className="bg-white dark:bg-[#1a2640] p-4 rounded-xl flex items-center justify-between border border-gray-100 dark:border-slate-800/80 shadow-sm relative overflow-hidden"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`p-2 rounded-lg shrink-0 ${isPemasukan ? "bg-green-50 text-green-600" : "bg-rose-50 text-rose-500"}`}
+                    className={`p-2 rounded-lg shrink-0 ${
+                      isPemasukan 
+                        ? "bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400" 
+                        : "bg-rose-50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400"
+                    }`}
                   >
                     {isPemasukan ? (
                       <ArrowDownLeft size={20} />
@@ -718,7 +773,7 @@ export default function Cashflow() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-[14px] font-bold text-gray-800 m-0 truncate">{trx.keterangan || "Tanpa Keterangan"}</p>
+                      <p className="text-[14px] font-bold text-gray-800 dark:text-gray-100 m-0 truncate">{trx.keterangan || "Tanpa Keterangan"}</p>
                       {!isVerified && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 uppercase tracking-wide">
                           Pending
@@ -735,7 +790,9 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p
-                  className={`text-[14px] font-bold tabular-nums shrink-0 m-0 ${isPemasukan ? "text-green-600" : "text-rose-500"}`}
+                  className={`text-[14px] font-bold tabular-nums shrink-0 m-0 ${
+                    isPemasukan ? "text-green-600 dark:text-green-400" : "text-rose-500 dark:text-rose-400"
+                  }`}
                 >
                   {isPemasukan ? "+" : "-"} {formatRupiah(trx.nominal)}
                 </p>
@@ -746,7 +803,7 @@ export default function Cashflow() {
         {!loading && transactions.length > 10 && (
           <button
             onClick={() => setShowAllTransactions(!showAllTransactions)}
-            className="mt-2 w-full py-3 bg-gray-50 border border-gray-100 text-xs font-extrabold text-blue-600 hover:text-blue-800 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-1 active:scale-95"
+            className="mt-2 w-full py-3 bg-gray-50 dark:bg-[#1a2640]/50 border border-gray-100 dark:border-slate-800/80 text-xs font-extrabold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800/50 transition-all flex items-center justify-center gap-1 active:scale-95"
           >
             {showAllTransactions ? "Sembunyikan" : "Lihat Semua"}
           </button>

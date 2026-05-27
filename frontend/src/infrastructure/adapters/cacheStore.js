@@ -5,6 +5,8 @@ const ACTION_CONFIG = {
   getTickets: { ttlMs: 60 * 1000, mergeById: "id_tiket" },
   getNews: { ttlMs: 2 * 60 * 1000, mergeById: "id_berita" },
   getNewsReplies: { ttlMs: 45 * 1000, mergeById: "id_balasan" },
+  getTicketReplies: { ttlMs: 15 * 1000, mergeById: "id_balasan" },
+  getGeneralChats: { ttlMs: 10 * 1000, mergeById: "id_chat" },
   getUsers: { ttlMs: 5 * 60 * 1000 },
   getTransactionCategories: { ttlMs: 10 * 60 * 1000 },
 };

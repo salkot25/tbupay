@@ -8,6 +8,7 @@ import {
   CheckCircle,
   ClipboardCheck,
   ChevronRight,
+  ChevronLeft,
   Users,
   Newspaper,
   CalendarDays,
@@ -15,12 +16,11 @@ import {
   ArrowRight,
   ArrowUpRight,
   ArrowDownRight,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Megaphone,
   MessageSquareWarning,
   Landmark,
+  Lightbulb,
+  MessageCircle,
 } from "lucide-react";
 import { getTransactions } from "../application/use-cases/transactions/transactionUseCases";
 import { getNews } from "../application/use-cases/news/newsUseCases";
@@ -67,7 +67,7 @@ function NewsDetailSheet({ news, onClose }) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className={`w-full max-w-[480px] bg-white rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.18)] flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        className={`w-full max-w-[480px] bg-white dark:bg-[#131c33] rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.18)] flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ maxHeight: "85dvh" }}
@@ -110,7 +110,7 @@ function NewsDetailSheet({ news, onClose }) {
           </h2>
 
           {/* Content */}
-          <p className="text-gray-600 text-[14px] leading-relaxed m-0 whitespace-pre-line pb-8">
+          <p className="text-gray-600 dark:text-gray-300 text-[14px] leading-relaxed m-0 whitespace-pre-line pb-8">
             {news?.konten}
           </p>
         </div>
@@ -144,7 +144,7 @@ function AllTransactionsSheet({ transactions, isOpen, onClose, formatRupiah }) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className={`w-full max-w-[480px] bg-white rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.18)] flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        className={`w-full max-w-[480px] bg-white dark:bg-[#131c33] rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.18)] flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ maxHeight: "85dvh", height: "85dvh" }}
@@ -155,8 +155,8 @@ function AllTransactionsSheet({ transactions, isOpen, onClose, formatRupiah }) {
         <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mt-3 mb-0 shrink-0" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 shrink-0">
-          <h3 className="text-[16px] font-bold text-gray-800 m-0">Semua Riwayat Transaksi</h3>
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 dark:border-slate-800/80 shrink-0">
+          <h3 className="text-[16px] font-bold text-gray-800 dark:text-gray-100 m-0">Semua Riwayat Transaksi</h3>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border-none cursor-pointer text-gray-500 hover:bg-gray-200 transition-colors shrink-0"
@@ -245,6 +245,20 @@ function HeroCarousel({ totalKas, totalPemasukan, totalPengeluaran, latestNews, 
   const goTo = (idx) => {
     setActiveIndex(Math.max(0, Math.min(idx, totalSlides - 1)));
   };
+
+  // Auto-peek tease animation on mount
+  useEffect(() => {
+    if (totalSlides > 1 && activeIndex === 0) {
+      const timer = setTimeout(() => {
+        setActiveIndex(1);
+        const timerBack = setTimeout(() => {
+          setActiveIndex(0);
+        }, 1000);
+        return () => clearTimeout(timerBack);
+      }, 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [totalSlides]);
 
   // Touch handlers
   const handleTouchStart = (e) => {
@@ -393,6 +407,13 @@ function HeroCarousel({ totalKas, totalPemasukan, totalPengeluaran, latestNews, 
                   )}
                 </div>
               </div>
+
+              {/* Swipe visual hint */}
+              {totalSlides > 1 && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/10 p-1.5 rounded-full text-white/70 animate-pulse pointer-events-none z-20">
+                  <ChevronRight size={18} className="stroke-[2.5]" />
+                </div>
+              )}
             </div>
           </div>
 
@@ -407,6 +428,18 @@ function HeroCarousel({ totalKas, totalPemasukan, totalPengeluaran, latestNews, 
               >
                 {/* Background Icon */}
                 <Newspaper className="absolute -right-4 -bottom-4 w-40 h-40 text-white opacity-[0.05] pointer-events-none rotate-[5deg]" />
+
+                {/* Swipe Left visual hint */}
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/10 p-1.5 rounded-full text-white/70 animate-pulse pointer-events-none z-20">
+                  <ChevronLeft size={18} className="stroke-[2.5]" />
+                </div>
+
+                {/* Swipe Right visual hint if there are more slides */}
+                {i + 2 < totalSlides && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/10 p-1.5 rounded-full text-white/70 animate-pulse pointer-events-none z-20">
+                    <ChevronRight size={18} className="stroke-[2.5]" />
+                  </div>
+                )}
 
                 {/* Badge + date */}
                 <div className="relative z-10 flex items-center justify-between shrink-0">
@@ -468,23 +501,30 @@ function HeroCarousel({ totalKas, totalPemasukan, totalPengeluaran, latestNews, 
 
       {/* Dot indicators */}
       {totalSlides > 1 && (
-        <div className="flex items-center justify-center gap-1.5">
-          {Array.from({ length: totalSlides }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i)}
-              aria-label={`Slide ${i + 1}`}
-              className="transition-all duration-300 rounded-full"
-              style={{
-                width: activeIndex === i ? "20px" : "6px",
-                height: "6px",
-                background: activeIndex === i ? "#0f4c81" : "#cbd5e1",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-              }}
-            />
-          ))}
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5">
+            {Array.from({ length: totalSlides }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                aria-label={`Slide ${i + 1}`}
+                className="transition-all duration-300 rounded-full"
+                style={{
+                  width: activeIndex === i ? "20px" : "6px",
+                  height: "6px",
+                  background: activeIndex === i ? "#0f4c81" : "#cbd5e1",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              />
+            ))}
+          </div>
+          {activeIndex === 0 && (
+            <span className="text-[9px] font-bold text-gray-400 animate-pulse uppercase tracking-wider mt-0.5">
+              Geser ke kiri untuk melihat berita terkini ➔
+            </span>
+          )}
         </div>
       )}
     </section>
@@ -498,19 +538,148 @@ export default function Home() {
   const showConfirm = useStore((state) => state.showConfirm);
   const navigate = useNavigate();
 
-  const [totalKas, setTotalKas] = useState(0);
-  const [totalPemasukan, setTotalPemasukan] = useState(0);
-  const [totalPengeluaran, setTotalPengeluaran] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          return parsed.response.data;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const [latestNews, setLatestNews] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getNews:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          const sorted = [...parsed.response.data].sort(
+            (a, b) => new Date(b.tanggal) - new Date(a.tanggal),
+          );
+          return sorted.slice(0, 3);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const [openTicketsCount, setOpenTicketsCount] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTickets:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          return parsed.response.data.filter((t) => t.status === "open").length;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return 0;
+  });
+
+  const [totalKas, setTotalKas] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          let total = 0;
+          parsed.response.data.forEach((t) => {
+            if (t.status === "verified") {
+              const n = parseFloat(t.nominal) || 0;
+              if (t.jenis === "pemasukan") total += n;
+              if (t.jenis === "pengeluaran") total -= n;
+            }
+          });
+          return total;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return 0;
+  });
+
+  const [totalPemasukan, setTotalPemasukan] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          let pemasukan = 0;
+          parsed.response.data.forEach((t) => {
+            if (t.status === "verified") {
+              const n = parseFloat(t.nominal) || 0;
+              if (t.jenis === "pemasukan") pemasukan += n;
+            }
+          });
+          return pemasukan;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return 0;
+  });
+
+  const [totalPengeluaran, setTotalPengeluaran] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          let pengeluaran = 0;
+          parsed.response.data.forEach((t) => {
+            if (t.status === "verified") {
+              const n = parseFloat(t.nominal) || 0;
+              if (t.jenis === "pengeluaran") pengeluaran += n;
+            }
+          });
+          return pengeluaran;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return 0;
+  });
+
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cachedTrx = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      const cachedNews = localStorage.getItem("tbu_pay_cache_v1:getNews:{}");
+      if (cachedTrx || cachedNews) return false;
+    } catch (e) {
+      console.error(e);
+    }
+    return true;
+  });
+
+  const [dataSource, setDataSource] = useState(() => {
+    try {
+      const cachedTrx = localStorage.getItem("tbu_pay_cache_v1:getTransactions:{}");
+      const cachedNews = localStorage.getItem("tbu_pay_cache_v1:getNews:{}");
+      if (cachedTrx || cachedNews) return "cache";
+    } catch (e) {
+      console.error(e);
+    }
+    return "network";
+  });
+
   const [refreshing, setRefreshing] = useState(false);
-  const [transactions, setTransactions] = useState([]);
-  const [latestNews, setLatestNews] = useState([]);
   const [selectedNews, setSelectedNews] = useState(null);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
-  const [dataSource, setDataSource] = useState("network");
   const [isAllTrxOpen, setIsAllTrxOpen] = useState(false);
-  const [openTicketsCount, setOpenTicketsCount] = useState(0);
 
   const myAllTransactions = useMemo(() => {
     return [...transactions]
@@ -544,53 +713,16 @@ export default function Home() {
     (t) => t.status === "pending",
   ).length;
 
-  // ── Balance Trend: net saldo per bulan dari semua transaksi verified ──────
-  const balanceTrend = useMemo(() => {
-    // Helper: hitung net saldo untuk bulan & tahun tertentu
-    const netForMonth = (month, year) =>
-      transactions
-        .filter((t) => {
-          const d = new Date(t.timestamp);
-          return (
-            t.status === "verified" &&
-            d.getMonth() === month &&
-            d.getFullYear() === year
-          );
-        })
-        .reduce((acc, t) => {
-          const n = parseFloat(t.nominal) || 0;
-          return t.jenis === "pemasukan" ? acc + n : acc - n;
-        }, 0);
 
-    const now = new Date();
-    const curMonth = now.getMonth();
-    const curYear = now.getFullYear();
-
-    // Bulan lalu
-    const prevDate = new Date(curYear, curMonth - 1, 1);
-    const prevMonth = prevDate.getMonth();
-    const prevYear = prevDate.getFullYear();
-
-    const thisNet = netForMonth(curMonth, curYear);
-    const lastNet = netForMonth(prevMonth, prevYear);
-    const diff = thisNet - lastNet;
-    const pct =
-      lastNet !== 0 ? ((diff / Math.abs(lastNet)) * 100).toFixed(1) : null;
-
-    // Sparkline: 6 bulan terakhir (dari 5 bulan lalu hingga bulan ini)
-    const spark = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(curYear, curMonth - 5 + i, 1);
-      return netForMonth(d.getMonth(), d.getFullYear());
-    });
-
-    const sparkMax = Math.max(...spark.map(Math.abs), 1);
-
-    return { thisNet, lastNet, diff, pct, spark, sparkMax, curMonth, curYear, prevMonth, prevYear };
-  }, [transactions]);
 
   const fetchData = async (forceRefresh = false) => {
     if (forceRefresh) setRefreshing(true);
-    else setLoading(true);
+    else {
+      setLoading((prev) => {
+        const hasData = transactions.length > 0 || latestNews.length > 0;
+        return hasData ? false : true;
+      });
+    }
 
     try {
       const [transRes, newsRes, ticketsRes] = await Promise.all([
@@ -628,7 +760,6 @@ export default function Home() {
           const d = new Date(t.timestamp);
           return (
             t.id_user === user?.id_user &&
-            t.status === "verified" &&
             d.getMonth() === thisMonth &&
             d.getFullYear() === thisYear
           );
@@ -679,6 +810,8 @@ export default function Home() {
       document.body.style.overflow = "";
     };
   }, []);
+
+
 
   useEffect(() => {
     fetchData();
@@ -783,11 +916,11 @@ export default function Home() {
           <img
             src="/avatar_placeholder.png"
             alt="Avatar"
-            className="w-12 h-12 rounded-full object-cover border border-gray-100 shadow-sm"
+            className="w-12 h-12 rounded-full object-cover border border-gray-100 dark:border-slate-700 shadow-sm"
           />
           <div className="flex flex-col justify-center">
             <span className="text-[13px] font-medium text-gray-400 leading-tight">Welcome Back,</span>
-            <h2 className="text-[20px] font-extrabold text-gray-900 m-0 leading-tight">
+            <h2 className="text-[20px] font-extrabold text-gray-900 dark:text-gray-100 m-0 leading-tight">
               {user?.nama || "Warga"}!
             </h2>
           </div>
@@ -820,53 +953,53 @@ export default function Home() {
       {/* ── Quick Actions ── */}
       <section className="grid grid-cols-4 gap-3">
         <button
-          className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+          className="flex flex-col items-center justify-start gap-2 bg-white dark:bg-[#1a2640] p-3 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none active:scale-95 transition-transform cursor-pointer"
           onClick={() => navigate("/admin/users")}
         >
-          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 flex items-center justify-center shrink-0">
             <Users size={22} />
           </div>
-          <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Data Warga</span>
+          <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 text-center leading-tight">Data Warga</span>
         </button>
         <button
-          className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
-          onClick={() => navigate("/cashflow")}
+          className="flex flex-col items-center justify-start gap-2 bg-white dark:bg-[#1a2640] p-3 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none active:scale-95 transition-transform cursor-pointer"
+          onClick={() => navigate("/service", { state: { openSheet: "saran" } })}
         >
-          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <Landmark size={22} />
+          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Lightbulb size={22} />
           </div>
-          <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Keuangan</span>
+          <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 text-center leading-tight">Kotak Saran</span>
         </button>
         <button
-          className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
-          onClick={() => navigate("/service", { state: { openSheet: "berita" } })}
+          className="flex flex-col items-center justify-start gap-2 bg-white dark:bg-[#1a2640] p-3 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none active:scale-95 transition-transform cursor-pointer"
+          onClick={() => navigate("/service", { state: { openSheet: "grupchat" } })}
         >
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <Megaphone size={22} />
+          <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 flex items-center justify-center shrink-0">
+            <MessageCircle size={22} />
           </div>
-          <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Pengumuman</span>
+          <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 text-center leading-tight">Grup Chat</span>
         </button>
         <button
-          className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+          className="flex flex-col items-center justify-start gap-2 bg-white dark:bg-[#1a2640] p-3 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none active:scale-95 transition-transform cursor-pointer"
           onClick={() => navigate("/service", { state: { openSheet: "keluhan" } })}
         >
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 flex items-center justify-center shrink-0">
             <MessageSquareWarning size={22} />
           </div>
-          <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Pengaduan</span>
+          <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 text-center leading-tight">Pengaduan</span>
         </button>
 
         {/* Admin Specific Quick Actions */}
         {user?.role === "admin" && (
           <>
             <button
-              className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer relative"
+              className="flex flex-col items-center justify-start gap-2 bg-white dark:bg-[#1a2640] p-3 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none active:scale-95 transition-transform cursor-pointer relative"
               onClick={() => navigate("/admin/verifikasi")}
             >
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <ClipboardCheck size={22} />
               </div>
-              <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Verifikasi</span>
+              <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 text-center leading-tight">Verifikasi</span>
               {pendingCount > 0 && (
                 <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border border-white">
                   {pendingCount}
@@ -875,13 +1008,13 @@ export default function Home() {
             </button>
 
             <button
-              className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer relative"
+              className="flex flex-col items-center justify-start gap-2 bg-white dark:bg-[#1a2640] p-3 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none active:scale-95 transition-transform cursor-pointer relative"
               onClick={() => navigate("/service", { state: { openSheet: "pantauan" } })}
             >
-              <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 flex items-center justify-center shrink-0">
                 <MessageSquareWarning size={22} />
               </div>
-              <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Keluhan</span>
+              <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 text-center leading-tight">Keluhan</span>
               {openTicketsCount > 0 && (
                 <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border border-white">
                   {openTicketsCount}
@@ -890,127 +1023,29 @@ export default function Home() {
             </button>
 
             <button
-              className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+              className="flex flex-col items-center justify-start gap-2 bg-white dark:bg-[#1a2640] p-3 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none active:scale-95 transition-transform cursor-pointer"
               onClick={() => navigate("/service", { state: { openSheet: "berita" } })}
             >
-              <div className="w-12 h-12 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-full bg-pink-50 text-pink-600 dark:bg-pink-500/10 dark:text-pink-400 flex items-center justify-center shrink-0">
                 <Newspaper size={22} />
               </div>
-              <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Tambah Berita</span>
+              <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 text-center leading-tight">Tambah Berita</span>
             </button>
 
             <button
-              className="flex flex-col items-center justify-start gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] active:scale-95 transition-transform cursor-pointer"
+              className="flex flex-col items-center justify-start gap-2 bg-white dark:bg-[#1a2640] p-3 rounded-xl border border-gray-100 dark:border-slate-800/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none active:scale-95 transition-transform cursor-pointer"
               onClick={handleSendReminder}
             >
-              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 flex items-center justify-center shrink-0">
                 <Bell size={22} />
               </div>
-              <span className="text-[10px] font-bold text-gray-600 text-center leading-tight">Kirim Pengingat</span>
+              <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 text-center leading-tight">Kirim Pengingat</span>
             </button>
           </>
         )}
       </section>
 
-      {/* ── Balance Trend Card ── */}
-      <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {/* Header row */}
-        <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-gray-100">
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest m-0">Insight Saldo</p>
-            <h3 className="text-[15px] font-bold m-0 mt-0.5">Tren Balance Bulanan</h3>
-          </div>
-          <div
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-              balanceTrend.diff > 0
-                ? "bg-emerald-50 text-emerald-600"
-                : balanceTrend.diff < 0
-                  ? "bg-red-50 text-red-500"
-                  : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            {balanceTrend.diff > 0 ? <TrendingUp size={13} /> : balanceTrend.diff < 0 ? <TrendingDown size={13} /> : <Minus size={13} />}
-            {loading ? "—" : balanceTrend.pct !== null ? `${balanceTrend.diff >= 0 ? "+" : ""}${balanceTrend.pct}%` : "Baru"}
-          </div>
-        </div>
 
-        {/* Numbers row */}
-        <div className="grid grid-cols-2 divide-x divide-gray-100 px-0">
-          {/* This month */}
-          <div className="flex flex-col gap-0.5 px-4 py-3">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-              {new Date(balanceTrend.curYear, balanceTrend.curMonth).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
-            </span>
-            {loading ? (
-              <span className="inline-block w-28 h-5 bg-gray-100 rounded animate-pulse mt-1" />
-            ) : (
-              <span
-                className={`text-[15px] font-extrabold tabular-nums ${
-                  balanceTrend.thisNet >= 0 ? "text-emerald-600" : "text-red-500"
-                }`}
-              >
-                {balanceTrend.thisNet >= 0 ? "+" : ""}{formatRupiah(balanceTrend.thisNet)}
-              </span>
-            )}
-            <span className="text-[10px] text-gray-400 font-medium">Bulan ini</span>
-          </div>
-
-          {/* Last month */}
-          <div className="flex flex-col gap-0.5 px-4 py-3">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
-              {new Date(balanceTrend.prevYear, balanceTrend.prevMonth).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
-            </span>
-            {loading ? (
-              <span className="inline-block w-28 h-5 bg-gray-100 rounded animate-pulse mt-1" />
-            ) : (
-              <span
-                className={`text-[15px] font-extrabold tabular-nums ${
-                  balanceTrend.lastNet >= 0 ? "text-gray-700" : "text-red-400"
-                }`}
-              >
-                {balanceTrend.lastNet >= 0 ? "+" : ""}{formatRupiah(balanceTrend.lastNet)}
-              </span>
-            )}
-            <span className="text-[10px] text-gray-400 font-medium">Bulan lalu</span>
-          </div>
-        </div>
-
-        {/* Sparkline mini bar chart — 6 bulan */}
-        <div className="px-4 pb-4 pt-1">
-          <div className="flex items-end gap-[5px] h-10">
-            {balanceTrend.spark.map((val, i) => {
-              const isCurrentMonth = i === 5;
-              const heightPct = Math.abs(val) / balanceTrend.sparkMax;
-              const barH = Math.max(heightPct * 40, 4); // px, min 4px
-              const isPos = val >= 0;
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center justify-end h-10 gap-[2px]">
-                  <div
-                    style={{ height: `${barH}px` }}
-                    className={`w-full rounded-sm transition-all duration-500 ${
-                      isCurrentMonth
-                        ? isPos ? "bg-emerald-500" : "bg-red-400"
-                        : isPos ? "bg-emerald-200" : "bg-red-200"
-                    }`}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex gap-[5px] mt-1">
-            {balanceTrend.spark.map((_, i) => {
-              const d = new Date(balanceTrend.curYear, balanceTrend.curMonth - 5 + i, 1);
-              return (
-                <span key={i} className={`flex-1 text-center text-[9px] font-medium ${
-                  i === 5 ? "text-[#0f4c81] font-bold" : "text-gray-300"
-                }`}>
-                  {d.toLocaleDateString("id-ID", { month: "short" }).slice(0, 3)}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
 
 
@@ -1026,7 +1061,7 @@ export default function Home() {
             <ChevronRight size={14} />
           </button>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-[#131c33] border border-gray-200 dark:border-slate-800/80 rounded-xl overflow-hidden">
           {myLatestTransactions.length > 0 ? (
             <div className="flex flex-col">
               {myLatestTransactions.map((trx, index) => {

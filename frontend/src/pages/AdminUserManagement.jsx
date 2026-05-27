@@ -24,6 +24,7 @@ const EMPTY_FORM = {
   blok_rumah: "",
   no_hp: "",
   role: "warga",
+  status_warga: "tetap",
   password: "",
 };
 
@@ -31,10 +32,43 @@ export default function AdminUserManagement() {
   const currentUser = useStore((s) => s.user);
   const showAlert = useStore((s) => s.showAlert);
   const showConfirm = useStore((s) => s.showConfirm);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getUsers:{}");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.response?.status === "success" && Array.isArray(parsed.response.data)) {
+          return parsed.response.data;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getUsers:{}");
+      if (cached) return false;
+    } catch (e) {
+      console.error(e);
+    }
+    return true;
+  });
+
   const [refreshing, setRefreshing] = useState(false);
-  const [dataSource, setDataSource] = useState("network");
+
+  const [dataSource, setDataSource] = useState(() => {
+    try {
+      const cached = localStorage.getItem("tbu_pay_cache_v1:getUsers:{}");
+      if (cached) return "cache";
+    } catch (e) {
+      console.error(e);
+    }
+    return "network";
+  });
+
   const [search, setSearch] = useState("");
 
   // Form modal state
@@ -47,7 +81,15 @@ export default function AdminUserManagement() {
   const fetchUsers = useCallback(
     async (showRefresh = false, forceRefresh = false) => {
       if (showRefresh) setRefreshing(true);
-      else setLoading(true);
+      else {
+        setLoading(() => {
+          try {
+            const cached = localStorage.getItem("tbu_pay_cache_v1:getUsers:{}");
+            if (cached) return false;
+          } catch {}
+          return true;
+        });
+      }
       try {
         const res = await getUsers(forceRefresh ? { forceRefresh: true } : {});
         if (res?._meta?.source) {
@@ -89,6 +131,7 @@ export default function AdminUserManagement() {
       blok_rumah: user.blok_rumah,
       no_hp: user.no_hp || "",
       role: user.role,
+      status_warga: user.status_warga || "tetap",
       password: "", // blank means keep existing
     });
     setFormError("");
@@ -190,7 +233,7 @@ export default function AdminUserManagement() {
       {/* Header */}
       <div className="py-4 pb-3 flex justify-between items-center">
         <div>
-          <h2 className="text-[20px] font-bold text-gray-800 m-0">Manajemen Warga</h2>
+          <h2 className="text-[20px] font-bold text-gray-800 dark:text-gray-100 m-0">Manajemen Warga</h2>
           <p className="text-[12px] text-gray-400 mt-[2px] m-0">
             {users.length} warga terdaftar
           </p>
@@ -262,7 +305,7 @@ export default function AdminUserManagement() {
       ) : (
         <div className="flex flex-col gap-2.5">
           {filtered.map((user) => (
-            <div key={user.id_user} className="bg-white rounded-2xl border border-gray-100 p-[14px_16px] flex items-center gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div key={user.id_user} className="bg-white dark:bg-[#1a2640] rounded-2xl border border-gray-100 dark:border-slate-800/80 p-[14px_16px] flex items-center gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className={`w-11 h-11 rounded-full flex items-center justify-center text-[16px] font-extrabold shrink-0 ${
                 user.role === 'warga' ? 'bg-blue-100 text-blue-700' :
                 user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
@@ -271,18 +314,30 @@ export default function AdminUserManagement() {
                 {user.nama?.charAt(0)?.toUpperCase() || "?"}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-bold text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">{user.nama}</div>
+                <div className="text-[14px] font-bold text-gray-800 dark:text-gray-100 whitespace-nowrap overflow-hidden text-ellipsis">{user.nama}</div>
                 <div className="text-[11px] text-gray-400 mt-[2px] flex items-center gap-1.5">
                   <span>{user.blok_rumah}</span>
                   {user.no_hp && <span>· {user.no_hp}</span>}
                 </div>
-                <span className={`text-[10px] font-bold p-[2px_8px] rounded-full capitalize inline-block mt-1 ${
-                  user.role === 'warga' ? 'bg-blue-100 text-blue-700' :
-                  user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                  'bg-cyan-100 text-cyan-700'
-                }`}>
-                  {user.role}
-                </span>
+                <div className="flex gap-1.5 mt-1 items-center flex-wrap">
+                  <span className={`text-[10px] font-bold p-[2px_8px] rounded-full capitalize inline-block ${
+                    user.role === 'warga' ? 'bg-blue-100 text-blue-700' :
+                    user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                    'bg-cyan-100 text-cyan-700'
+                  }`}>
+                    {user.role}
+                  </span>
+                  {user.status_warga && (
+                    <span className={`text-[10px] font-bold p-[2px_8px] rounded-full capitalize inline-block border ${
+                      user.status_warga === 'tetap' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      user.status_warga === 'kontrak' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      user.status_warga === 'kos' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      'bg-purple-50 text-purple-700 border-purple-200'
+                    }`}>
+                      {user.status_warga}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2">
                 {(currentUser?.role === "admin" || user.id_user === currentUser?.id_user) && (
@@ -317,14 +372,14 @@ export default function AdminUserManagement() {
           if (e.target === e.currentTarget) closeForm();
         }}
       >
-        <div className={`w-full max-w-[480px] bg-white rounded-t-3xl p-[24px_20px] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col gap-[14px] max-h-[85vh] overflow-y-auto ${isFormOpen ? "translate-y-0" : "translate-y-full"}`}>
+        <div className={`w-full max-w-[480px] bg-white dark:bg-[#131c33] rounded-t-3xl p-[24px_20px] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col gap-[14px] max-h-[85vh] overflow-y-auto ${isFormOpen ? "translate-y-0" : "translate-y-full"}`}>
           <div className="flex justify-between items-center">
-            <h3 className="text-[18px] font-bold text-gray-800 m-0">
+            <h3 className="text-[18px] font-bold text-gray-800 dark:text-gray-100 m-0">
               {editTarget ? "Edit Warga" : "Tambah Warga Baru"}
             </h3>
             <button
               onClick={closeForm}
-              className="bg-gray-100 border-none rounded-full p-2 cursor-pointer text-gray-500 hover:bg-gray-200 transition-colors"
+              className="bg-gray-100 dark:bg-slate-800/60 border-none rounded-full p-2 cursor-pointer text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
             >
               <X size={18} />
             </button>
@@ -387,23 +442,39 @@ export default function AdminUserManagement() {
                  <option value="admin">Admin</option>
                </select>
              </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-bold text-gray-500 uppercase">Password</label>
-              <input
-                className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
-                type="password"
-                placeholder={
-                  editTarget ? "(biarkan kosong)" : "Default: 123456"
-                }
-                value={form.password}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, password: e.target.value }))
-                }
-              />
-              {editTarget && (
-                <span className="text-[10px] text-gray-400 mt-[2px]">Kosongkan jika tidak diubah</span>
-              )}
-            </div>
+             <div className="flex flex-col gap-1">
+               <label className="text-[11px] font-bold text-gray-500 uppercase">Status Warga</label>
+               <select
+                 className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
+                 value={form.status_warga}
+                 onChange={(e) =>
+                   setForm((p) => ({ ...p, status_warga: e.target.value }))
+                 }
+               >
+                 <option value="tetap">Tetap</option>
+                 <option value="kontrak">Kontrak</option>
+                 <option value="kos">Kos</option>
+                 <option value="sementara">Sementara</option>
+               </select>
+             </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-gray-500 uppercase">Password</label>
+            <input
+              className="w-full p-[11px_13px] border border-gray-200 rounded-xl bg-gray-50 text-[14px] outline-none font-sans box-border focus:border-blue-600 focus:bg-white"
+              type="password"
+              placeholder={
+                editTarget ? "(biarkan kosong)" : "Default: 123456"
+              }
+              value={form.password}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, password: e.target.value }))
+              }
+            />
+            {editTarget && (
+              <span className="text-[10px] text-gray-400 mt-[2px]">Kosongkan jika tidak diubah</span>
+            )}
           </div>
 
           {formError && (

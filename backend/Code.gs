@@ -41,12 +41,16 @@ function doPost(e) {
       return handleAddNews(postData);
     } else if (action === "addNewsReply") {
       return handleAddNewsReply(postData);
+    } else if (action === "addTicketReply") {
+      return handleAddTicketReply(postData);
     } else if (action === "addTransactionCategory") {
       return handleAddTransactionCategory(postData);
     } else if (action === "deleteTransactionCategory") {
       return handleDeleteTransactionCategory(postData);
     } else if (action === "reorderTransactionCategories") {
       return handleReorderTransactionCategories(postData);
+    } else if (action === "addGeneralChat") {
+      return handleAddGeneralChat(postData);
     }
 
     return ContentService.createTextOutput(
@@ -75,6 +79,10 @@ function doGet(e) {
       return handleGetTransactionCategories();
     } else if (action === "getNewsReplies") {
       return handleGetNewsReplies(e.parameter.id_berita);
+    } else if (action === "getTicketReplies") {
+      return handleGetTicketReplies(e.parameter.id_tiket);
+    } else if (action === "getGeneralChats") {
+      return handleGetGeneralChats();
     }
 
     return ContentService.createTextOutput(
@@ -93,10 +101,17 @@ function handleLogin(data) {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("tb_users");
   const rows = sheet.getDataRange().getValues();
-  // id_user, nama, blok_rumah, no_hp, role, password_hash
+  // id_user, nama, blok_rumah, no_hp, role, password_hash, status_warga
 
   for (let i = 1; i < rows.length; i++) {
-    const [id_user, nama, blok_rumah, no_hp, role, password_hash] = rows[i];
+    const row = rows[i];
+    const id_user = row[0];
+    const nama = row[1];
+    const blok_rumah = row[2];
+    const no_hp = row[3];
+    const role = row[4];
+    const password_hash = row[5];
+    const status_warga = row[6] || "tetap";
 
     // Convert to String to prevent type mismatch (e.g. 123456 as Number vs '123456' as String)
     const strBlok = String(blok_rumah).trim();
@@ -112,7 +127,7 @@ function handleLogin(data) {
       return ContentService.createTextOutput(
         JSON.stringify({
           status: "success",
-          user: { id_user, nama, blok_rumah, no_hp, role },
+          user: { id_user, nama, blok_rumah, no_hp, role, status_warga },
         }),
       ).setMimeType(ContentService.MimeType.JSON);
     }
@@ -156,21 +171,52 @@ function handleAddTransaction(data) {
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("tb_transaksi");
   let url_bukti = "";
 
+  const now = new Date();
+
   if (data.imageBase64) {
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const contentType = data.imageBase64.match(
+    // --- Struktur folder: DRIVE_ROOT/bukti/YYYY-MM/ ---
+    const rootFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+
+    // Cari atau buat folder "bukti"
+    var buktiFolderIter = rootFolder.getFoldersByName("bukti");
+    var buktiFolder = buktiFolderIter.hasNext()
+      ? buktiFolderIter.next()
+      : rootFolder.createFolder("bukti");
+
+    // Cari atau buat subfolder tahun-bulan (contoh: "2026-05")
+    var yearMonth =
+      now.getFullYear() +
+      "-" +
+      String(now.getMonth() + 1).padStart(2, "0");
+    var monthFolderIter = buktiFolder.getFoldersByName(yearMonth);
+    var monthFolder = monthFolderIter.hasNext()
+      ? monthFolderIter.next()
+      : buktiFolder.createFolder(yearMonth);
+
+    // --- Nama file: YYYYMMDD-ID_USER-KODE_UNIK ---
+    var datePrefix =
+      now.getFullYear().toString() +
+      String(now.getMonth() + 1).padStart(2, "0") +
+      String(now.getDate()).padStart(2, "0");
+    var userId = String(data.id_user || "UNKNOWN").toUpperCase().replace(/\s+/g, "_");
+    var shortUuid = Utilities.getUuid().split("-")[0]; // 8 karakter unik
+    var fileName = datePrefix + "-" + userId + "-" + shortUuid;
+
+    var contentType = data.imageBase64.match(
       /data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,/,
     )[1];
-    const base64Data = data.imageBase64.split(",")[1];
-    const blob = Utilities.newBlob(
+    var base64Data = data.imageBase64.split(",")[1];
+    var blob = Utilities.newBlob(
       Utilities.base64Decode(base64Data),
       contentType,
-      "bukti_" + Date.now(),
+      fileName,
     );
-    const file = folder.createFile(blob);
+    var file = monthFolder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    // URL lh3.googleusercontent.com — bisa langsung diembed di <img> tanpa blokir
     url_bukti =
-      "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w800";
+      "https://lh3.googleusercontent.com/d/" + file.getId() + "=s800";
   }
 
   const id_transaksi = Utilities.getUuid();
@@ -749,7 +795,6 @@ function doOptions(e) {
 
 // ================= INITIALIZATION =================
 // Run this function ONCE from the Apps Script Editor to setup the spreadsheet
-
 function initSheet() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
@@ -763,6 +808,7 @@ function initSheet() {
         "no_hp",
         "role",
         "password_hash",
+        "status_warga",
       ],
     },
     {
@@ -839,6 +885,7 @@ function initSheet() {
       "08111111",
       "admin",
       "123456",
+      "tetap",
     ]);
     userSheet.appendRow([
       "warga-001",
@@ -847,6 +894,7 @@ function initSheet() {
       "08222222",
       "warga",
       "123456",
+      "tetap",
     ]);
     userSheet.appendRow([
       "petugas-001",
@@ -855,6 +903,7 @@ function initSheet() {
       "08333333",
       "petugas",
       "123456",
+      "tetap",
     ]);
   }
 
@@ -876,7 +925,7 @@ function initSheet() {
 }
 
 // ================= USER MANAGEMENT =================
-// Columns: id_user(0), nama(1), blok_rumah(2), no_hp(3), role(4), password_hash(5)
+// Columns: id_user(0), nama(1), blok_rumah(2), no_hp(3), role(4), password_hash(5), status_warga(6)
 
 function handleGetUsers() {
   const sheet =
@@ -890,6 +939,7 @@ function handleGetUsers() {
       blok_rumah: rows[i][2],
       no_hp: String(rows[i][3]),
       role: rows[i][4],
+      status_warga: rows[i][6] || "tetap",
       // never return password hash
     });
   }
@@ -926,6 +976,7 @@ function handleAddUser(data) {
     data.no_hp || "",
     data.role || "warga",
     data.password || "123456",
+    data.status_warga || "tetap",
   ]);
   return ContentService.createTextOutput(
     JSON.stringify({
@@ -950,6 +1001,7 @@ function handleUpdateUser(data) {
       if (data.password) {
         sheet.getRange(i + 1, 6).setValue(data.password);
       }
+      sheet.getRange(i + 1, 7).setValue(data.status_warga || "tetap");
       return ContentService.createTextOutput(
         JSON.stringify({ status: "success", message: "User diperbarui" }),
       ).setMimeType(ContentService.MimeType.JSON);
@@ -987,5 +1039,161 @@ function handleDeleteUser(data) {
   }
   return ContentService.createTextOutput(
     JSON.stringify({ status: "error", message: "User tidak ditemukan" }),
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleGetTicketReplies(id_tiket) {
+  const targetTicketId = String(id_tiket || "").trim();
+  if (!targetTicketId) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ status: "error", message: "id_tiket wajib diisi." }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName("tb_tiket_balasan");
+  if (!sheet) {
+    sheet = ss.insertSheet("tb_tiket_balasan");
+    sheet.appendRow(["id_balasan", "id_tiket", "id_user", "nama_pengirim", "role_pengirim", "isi_balasan", "timestamp"]);
+  }
+
+  const rows = sheet.getDataRange().getValues();
+  const replies = [];
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][1]) !== targetTicketId) continue;
+    replies.push({
+      id_balasan: rows[i][0],
+      id_tiket: rows[i][1],
+      id_user: rows[i][2],
+      nama_pengirim: rows[i][3],
+      role_pengirim: rows[i][4],
+      isi_balasan: rows[i][5],
+      timestamp: rows[i][6]
+    });
+  }
+
+  replies.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  return ContentService.createTextOutput(
+    JSON.stringify({ status: "success", data: replies }),
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleAddTicketReply(data) {
+  const idTiket = String(data.id_tiket || "").trim();
+  const isiBalasan = String(data.isi_balasan || "").trim();
+  const idUser = String(data.id_user || "").trim();
+  const namaPengirim = String(data.nama_pengirim || "").trim();
+  const rolePengirim = String(data.role_pengirim || "warga").trim();
+
+  if (!idTiket || !isiBalasan) {
+    return ContentService.createTextOutput(
+      JSON.stringify({
+        status: "error",
+        message: "ID tiket dan isi balasan wajib diisi.",
+      }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ticketSheet = ss.getSheetByName("tb_tiket_layanan");
+  const ticketRows = ticketSheet ? ticketSheet.getDataRange().getValues() : [];
+  const hasTicket = ticketRows.some(
+    (row, idx) => idx > 0 && String(row[0]) === idTiket,
+  );
+  if (!hasTicket) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ status: "error", message: "Tiket keluhan tidak ditemukan." }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  let replySheet = ss.getSheetByName("tb_tiket_balasan");
+  if (!replySheet) {
+    replySheet = ss.insertSheet("tb_tiket_balasan");
+    replySheet.appendRow(["id_balasan", "id_tiket", "id_user", "nama_pengirim", "role_pengirim", "isi_balasan", "timestamp"]);
+  }
+
+  replySheet.appendRow([
+    Utilities.getUuid(),
+    idTiket,
+    idUser || "anonymous",
+    namaPengirim || "Pengguna",
+    rolePengirim,
+    isiBalasan,
+    new Date().toISOString(),
+  ]);
+
+  return ContentService.createTextOutput(
+    JSON.stringify({
+      status: "success",
+      message: "Balasan berhasil dikirim.",
+    }),
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleGetGeneralChats() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName("tb_obrolan_warga");
+  if (!sheet) {
+    sheet = ss.insertSheet("tb_obrolan_warga");
+    sheet.appendRow(["id_chat", "id_user", "nama_pengirim", "role_pengirim", "isi_chat", "timestamp"]);
+    // Seed some initial messages
+    sheet.appendRow(["seed-1", "system", "Pak RT Budi", "admin", "Selamat datang di Grup Chat Warga! Silakan berinteraksi dengan tertib.", new Date().toISOString()]);
+  }
+
+  const rows = sheet.getDataRange().getValues();
+  const chats = [];
+  for (let i = 1; i < rows.length; i++) {
+    chats.push({
+      id_chat: rows[i][0],
+      id_user: rows[i][1],
+      nama_pengirim: rows[i][2],
+      role_pengirim: rows[i][3],
+      isi_chat: rows[i][4],
+      timestamp: rows[i][5]
+    });
+  }
+
+  chats.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  return ContentService.createTextOutput(
+    JSON.stringify({ status: "success", data: chats }),
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleAddGeneralChat(data) {
+  const isiChat = String(data.isi_chat || "").trim();
+  const idUser = String(data.id_user || "").trim();
+  const namaPengirim = String(data.nama_pengirim || "").trim();
+  const rolePengirim = String(data.role_pengirim || "warga").trim();
+
+  if (!isiChat) {
+    return ContentService.createTextOutput(
+      JSON.stringify({
+        status: "error",
+        message: "Isi chat tidak boleh kosong.",
+      }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName("tb_obrolan_warga");
+  if (!sheet) {
+    sheet = ss.insertSheet("tb_obrolan_warga");
+    sheet.appendRow(["id_chat", "id_user", "nama_pengirim", "role_pengirim", "isi_chat", "timestamp"]);
+  }
+
+  sheet.appendRow([
+    Utilities.getUuid(),
+    idUser || "anonymous",
+    namaPengirim || "Pengguna",
+    rolePengirim,
+    isiChat,
+    new Date().toISOString(),
+  ]);
+
+  return ContentService.createTextOutput(
+    JSON.stringify({
+      status: "success",
+      message: "Pesan berhasil terkirim.",
+    }),
   ).setMimeType(ContentService.MimeType.JSON);
 }

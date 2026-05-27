@@ -4,7 +4,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import useStore from "./store/useStore";
 import MainLayout from "./layouts/MainLayout";
 import DialogModal from "./components/DialogModal";
@@ -32,6 +32,13 @@ function PrivateRoute({ children }) {
 }
 
 export default function App() {
+  const isDarkMode = useStore((state) => state.isDarkMode);
+
+  useEffect(() => {
+    // Apply persisted theme class to document element on startup & changes
+    document.documentElement.classList.toggle("dark", isDarkMode);
+  }, [isDarkMode]);
+
   return (
     <Router basename={import.meta.env.BASE_URL}>
       <DialogModal />

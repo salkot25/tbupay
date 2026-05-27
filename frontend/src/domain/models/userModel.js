@@ -4,4 +4,5 @@ export const toUserModel = (raw = {}) => ({
   blok_rumah: String(raw.blok_rumah || ""),
   no_hp: String(raw.no_hp || ""),
   role: String(raw.role || "warga"),
+  status_warga: String(raw.status_warga || "tetap"),
 });
