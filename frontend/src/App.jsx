@@ -1,5 +1,5 @@
 import {
-  BrowserRouter as Router,
+  HashRouter as Router,
   Routes,
   Route,
   Navigate,
@@ -40,7 +40,7 @@ export default function App() {
   }, [isDarkMode]);
 
   return (
-    <Router basename={import.meta.env.BASE_URL}>
+    <Router>
       <DialogModal />
       <Suspense fallback={<PageFallback />}>
         <Routes>
